@@ -1,0 +1,138 @@
+.env-switcher-widget {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 999999;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  cursor: move;
+  user-select: none;
+}
+
+.env-switcher-button {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #2563eb;
+  border: none;
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s, background-color 0.2s;
+}
+
+.env-switcher-button:hover {
+  transform: scale(1.05);
+  background: #1d4ed8;
+}
+
+.env-switcher-menu {
+  position: absolute;
+  background: #ffffff !important;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 8px 0;
+  min-width: 200px;
+  display: none;
+  bottom: 60px;
+  right: 0;
+  z-index: 2147483647;
+}
+
+/* Create a pseudo-element to ensure background coverage */
+.env-switcher-menu::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #ffffff;
+  border-radius: 8px;
+  z-index: -1;
+}
+
+.env-switcher-menu * {
+  /* Reset all inherited properties for menu items */
+  all: revert;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif !important;
+  background: none;
+}
+
+.env-switcher-menu-item {
+  padding: 8px 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  color: #1f2937;
+  transition: background-color 0.2s ease;
+  white-space: nowrap;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  width: 100%;
+  box-sizing: border-box;
+  border: none;
+  margin: 0;
+}
+
+.env-switcher-menu-item:hover {
+  background-color: #f3f4f6 !important;
+}
+
+.env-switcher-menu-item.active {
+  background-color: #e5e7eb !important;
+  color: #2563eb !important;
+  font-weight: 500;
+}
+
+.env-switcher-menu.position-top {
+  bottom: 60px;
+  top: auto;
+  right: 0;
+  left: auto;
+}
+
+.env-switcher-menu.position-bottom {
+  top: 60px;
+  bottom: auto;
+  right: 0;
+  left: auto;
+}
+
+.env-switcher-menu.position-left {
+  right: 60px;
+  left: auto;
+  top: 0;
+}
+
+.env-switcher-menu.position-right {
+  left: 60px;
+  right: auto;
+  top: 0;
+}
+
+.env-switcher-menu.active {
+  display: block;
+}
+
+.env-switcher-menu-item-icon {
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  border-radius: 50%;
+  background: #10b981;
+  margin: 0;
+}
+
+.env-switcher-menu-item-icon.staging {
+  background: #f59e0b;
+}
+
+.env-switcher-menu-item-icon.dev {
+  background: #6366f1;
+} 
