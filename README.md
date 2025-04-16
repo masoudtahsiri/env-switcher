@@ -1,33 +1,65 @@
-# Env Switcher
+# Env Switcher Chrome Extension
 
-A Chrome extension for quickly switching between different environments of the same website and comparing them side by side.
+A Chrome extension that allows you to switch between different environments (e.g., staging, production) and compare them side by side.
 
 ## Features
 
-- Switch between multiple configurable environments (production, staging, development, etc.)
-- Compare two environments side by side with synchronized scrolling
-- Easy environment management through the popup interface
-- Save frequently accessed environments for quick access
+- **Environment Switching**: Easily switch between different environments while preserving the current path and query parameters
+- **Side-by-Side Comparison**: Compare two environments simultaneously to spot differences
+- **DOM Comparison**: Automatically detect and highlight differences in the DOM structure
+- **Modern UI**: Clean and intuitive interface with color-coded environments
+- **Customizable**: Add your own environments with custom names and colors
 
 ## Installation
 
-1. Clone this repository
+1. Clone or download this repository
 2. Open Chrome and navigate to `chrome://extensions/`
 3. Enable "Developer mode" in the top right corner
-4. Click "Load unpacked" and select the directory containing this extension
+4. Click "Load unpacked" and select the extension directory
 
 ## Usage
 
-1. Click on the extension icon in the toolbar to open the popup
-2. Select an environment to switch to from the dropdown
-3. Use the "Compare" button to open a side-by-side comparison with the current environment
-4. Toggle the scroll lock button to synchronize scrolling between environments
-5. Manage your environments through the "Manage" interface
+### Environment Switching
+
+1. Click the extension icon in your Chrome toolbar
+2. Select the target environment from the dropdown
+3. Click "Switch" to navigate to the same page in the selected environment
+
+### Adding Environments
+
+1. Click the extension icon
+2. Enter the environment details:
+   - Name (e.g., "Production", "Staging")
+   - Base URL (e.g., "https://example.com")
+   - Color (optional)
+3. Click "Add Environment"
+
+### Comparing Environments
+
+1. Click the extension icon
+2. Click the "Compare" button
+3. The comparison tool will open in a new tab
+4. Click "Compare" to analyze differences
+5. Click "Highlight Differences" to toggle the visual highlighting
+6. Click on any difference in the list to scroll to it
+
+## Default Environments
+
+The extension comes with two default environments:
+
+- **Production**: https://credaily.com/
+- **Staging**: https://cre2stg.wpengine.com/
 
 ## Development
 
-This extension is built with vanilla JavaScript, HTML, and CSS, with no external dependencies.
+The extension is built using vanilla JavaScript and modern CSS. The main components are:
+
+- `popup/`: Contains the popup interface files
+- `comparison/`: Contains the comparison tool files
+- `css/`: Contains stylesheets
+- `js/`: Contains JavaScript modules
+- `icons/`: Contains extension icons
 
 ## License
 
-MIT 
+MIT License 

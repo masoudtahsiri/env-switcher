@@ -27,119 +27,78 @@
     }
 
     console.log(`[Wrapper ${frameId}] Initializing with URL:`, url);
-    
-    // Scroll lock state
-    let scrollLockEnabled = false;
 
-    // Set up scroll detection on the main document
+    // Add scroll event listener to the document
     document.addEventListener('scroll', function(event) {
-      if (scrollLockEnabled) {
-        const scrollData = {
-          type: 'scroll',
-          frameId: frameId,
-          scrollX: window.scrollX,
-          scrollY: window.scrollY,
-          method: 'position'
-        };
-        
-        console.log(`[Wrapper ${frameId}] Scroll event:`, scrollData);
-        window.parent.postMessage(scrollData, '*');
-      }
+      console.log(`[Wrapper ${frameId}] Document scroll event:`, {
+        scrollX: window.scrollX,
+        scrollY: window.scrollY
+      });
+      window.parent.postMessage({
+        type: 'scroll',
+        frameId: frameId,
+        scrollX: window.scrollX,
+        scrollY: window.scrollY
+      }, '*');
     }, { passive: true });
 
-    // Set up wheel event detection for smoother scrolling
+    // Add wheel event listener to the document
     document.addEventListener('wheel', function(event) {
-      if (scrollLockEnabled) {
-        const wheelData = {
-          type: 'scroll',
-          frameId: frameId,
-          deltaX: event.deltaX,
-          deltaY: event.deltaY,
-          method: 'delta'
-        };
-        
-        console.log(`[Wrapper ${frameId}] Wheel event:`, wheelData);
-        window.parent.postMessage(wheelData, '*');
-      }
+      console.log(`[Wrapper ${frameId}] Document wheel event:`, {
+        deltaX: event.deltaX,
+        deltaY: event.deltaY,
+        deltaMode: event.deltaMode
+      });
+      window.parent.postMessage({
+        type: 'scroll',
+        frameId: frameId,
+        deltaX: event.deltaX,
+        deltaY: event.deltaY
+      }, '*');
     }, { passive: true });
 
-    // Touch events for mobile
-    let lastTouchY = 0;
+    // Add touch event listeners for mobile devices
+    let touchStartY = 0;
     document.addEventListener('touchstart', function(event) {
-      if (event.touches.length === 1) {
-        lastTouchY = event.touches[0].clientY;
-      }
+      touchStartY = event.touches[0].clientY;
+      console.log(`[Wrapper ${frameId}] Touch start:`, { touchStartY });
     }, { passive: true });
 
     document.addEventListener('touchmove', function(event) {
-      if (scrollLockEnabled && event.touches.length === 1) {
-        const touchY = event.touches[0].clientY;
-        const deltaY = lastTouchY - touchY;
-        
-        if (Math.abs(deltaY) > 5) { // Small threshold to avoid micro-movements
-          const touchData = {
-            type: 'scroll',
-            frameId: frameId,
-            deltaX: 0,
-            deltaY: deltaY,
-            method: 'touch'
-          };
-          
-          console.log(`[Wrapper ${frameId}] Touch move:`, touchData);
-          window.parent.postMessage(touchData, '*');
-          
-          lastTouchY = touchY;
-        }
-      }
+      const touchEndY = event.touches[0].clientY;
+      const deltaY = touchStartY - touchEndY;
+      console.log(`[Wrapper ${frameId}] Touch move:`, { 
+        touchEndY, 
+        deltaY,
+        touchStartY 
+      });
+      window.parent.postMessage({
+        type: 'scroll',
+        frameId: frameId,
+        deltaY: deltaY
+      }, '*');
+      touchStartY = touchEndY;
     }, { passive: true });
 
-    // Set iframe source
     iframe.src = url;
     
     iframe.onload = function() {
       console.log(`[Wrapper ${frameId}] Iframe loaded`);
-      
-      const loadedData = {
-        type: 'loaded',
-        frameId: frameId,
-        width: iframe.offsetWidth,
-        height: iframe.offsetHeight
-      };
-      
-      window.parent.postMessage(loadedData, '*');
+      window.parent.postMessage({ type: 'loaded', frameId: frameId }, '*');
     };
 
     // Listen for incoming scroll messages
     window.addEventListener('message', function(event) {
-      // Ignore messages from this window
-      if (event.source === window) return;
-      
-      const data = event.data;
-      
-      // Handle scroll lock state update
-      if (data.type === 'scrollLockState') {
-        scrollLockEnabled = data.active;
-        console.log(`[Wrapper ${frameId}] Scroll lock state updated:`, scrollLockEnabled);
-        return;
-      }
-      
-      // Handle scroll commands when they come from the other frame
-      if (data.type === 'scroll' && data.frameId !== frameId) {
-        console.log(`[Wrapper ${frameId}] Received scroll command:`, data);
-        
+      if (event.data.type === 'scroll') {
+        console.log(`[Wrapper ${frameId}] Received scroll message:`, event.data);
         try {
-          if (data.method === 'position') {
-            // Absolute position scroll
-            window.scrollTo(data.scrollX, data.scrollY);
-          } else if (data.method === 'delta') {
-            // Relative delta scroll
-            window.scrollBy(data.deltaX, data.deltaY);
-          } else if (data.method === 'touch') {
-            // Touch scroll - similar to delta
-            window.scrollBy(0, data.deltaY);
+          if (event.data.scrollX !== undefined && event.data.scrollY !== undefined) {
+            window.scrollTo(event.data.scrollX, event.data.scrollY);
+          } else if (event.data.deltaX !== undefined && event.data.deltaY !== undefined) {
+            window.scrollBy(event.data.deltaX, event.data.deltaY);
           }
-        } catch (error) {
-          console.error(`[Wrapper ${frameId}] Error scrolling:`, error);
+        } catch (e) {
+          console.error(`[Wrapper ${frameId}] Error scrolling:`, e);
         }
       }
     });
