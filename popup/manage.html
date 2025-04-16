@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Manage Environments - Env Switcher</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup">
+    <!-- Header Card -->
+    <div class="card header-card">
+      <div class="header-content">
+        <h1>Manage Environments</h1>
+        <a href="popup.html" class="back-link">&larr; Back to Switcher</a> 
+      </div>
+    </div>
+
+    <!-- Add Environment Form Card -->
+    <div class="card add-env-card">
+      <h2>Add New Environment</h2>
+      <form id="add-env-form">
+        <div class="form-group">
+          <label for="env-name">Name</label>
+          <input type="text" id="env-name" placeholder="e.g., Production" required>
+        </div>
+        <div class="form-group">
+          <label for="env-url">URL</label>
+          <div class="url-input-group">
+            <input type="text" id="env-url" placeholder="https://example.com" required>
+            <button type="button" id="set-domain-btn" class="domain-button" title="Set domain from current page">
+              <!-- Updated info icon -->
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" width="18" height="18">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <button type="submit" class="primary-button">Add Environment</button>
+      </form>
+    </div>
+
+    <!-- Current Environments List Card -->
+    <div class="card current-envs-card">
+        <h2>Current Environments</h2>
+        <div class="env-list" id="env-list">
+          <!-- Environment list items (cards) will be populated here by JS -->
+          <!-- Example Item Structure (JS should generate this): -->
+          <!-- 
+          <div class="env-item">
+            <div class="env-info">
+              <div class="env-name">
+                <span class="env-dot"></span>
+                <span class="env-text">Production</span>
+                <span class="env-badge production">Production</span> 
+              </div>
+              <div class="env-url">https://example.com</div>
+            </div>
+            <div class="env-actions">
+              <button class="delete-btn" title="Delete Environment">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                   <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+              </button>
+            </div>
+          </div> 
+          -->
+        </div>
+      </div>
+
+    <!-- Removed main/section wrappers -->
+
+  </div>
+  <script src="manage.js"></script>
+</body>
+</html> 

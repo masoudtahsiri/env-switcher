@@ -1,0 +1,366 @@
+:root {
+  /* Modern Palette */
+  --primary: #4f8fef; 
+  --primary-dark: #3a7bd5;
+  --primary-light: #e8f0fe; /* Lighter shade for backgrounds */
+  --success: #2ecc71;
+  --danger: #e74c3c;
+  --warning: #f39c12;
+  --text-primary: #1f2937; /* Darker Grey */
+  --text-secondary: #6b7280; /* Medium Grey */
+  --text-light: #9ca3af; /* Light Grey */
+  --border: #d1d5db; /* Lighter border */
+  --background: #f9fafb; /* Light grey background */
+  --background-card: #ffffff; /* White cards */
+  --shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --input-height: 40px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  width: 360px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"; /* System font stack */
+  background: var(--background);
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.popup {
+  display: flex;
+  flex-direction: column;
+  padding: 16px; /* Add padding around the whole popup */
+  gap: 16px; /* Space between main sections/cards */
+}
+
+/* Remove header/footer specific padding/borders, handle with cards */
+header, footer {
+  padding: 0;
+  border: none;
+  margin: 0;
+  background: transparent;
+}
+
+/* Card Base Style */
+.card {
+  background: var(--background-card);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  /* Remove min-height, padding handled by card */
+}
+
+h1 {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+h2 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Remove specific margin rules, handle with card/gap */
+#add-env-form + h2 {
+  margin-top: 24px; /* Keep space before Current Envs title within its card */
+}
+
+/* Current Environment Card adjustments */
+.current-env {
+  padding: 0; /* Padding handled by card */
+  margin: 0;
+  border: none; /* Border handled by card */
+  box-shadow: none; /* Shadow handled by card */
+  background: transparent; /* Bg handled by card */
+}
+
+.env-label {
+  font-size: 10px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.env-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.env-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--primary);
+}
+
+.env-text {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.env-url {
+  font-size: 12px;
+  color: var(--text-secondary);
+  word-break: break-all;
+  line-height: 1.3;
+}
+
+/* Main content uses body padding */
+main {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px; /* Space between cards in main */
+}
+
+/* Sections become cards */
+section {
+  /* Use .card styles */
+}
+
+.select-wrapper {
+  position: relative;
+}
+
+/* Improved Select Styling */
+select {
+  width: 100%;
+  height: var(--input-height);
+  padding: 0 32px 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--background-alt);
+  color: var(--text-primary);
+  font-size: 14px;
+  cursor: pointer;
+  appearance: none;
+  background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%236b7280%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M5.293%207.293a1%201%200%20011.414%200L10%2010.586l3.293-3.293a1%201%200%20111.414%201.414l-4%204a1%201%200%2001-1.414%200l-4-4a1%201%200%20010-1.414z%22%20clip-rule%3D%22evenodd%22%20%2F%3E%3C%2Fsvg%3E');
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 1em auto;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(79, 143, 239, 0.15);
+}
+.select-icon { display: none; }
+
+/* Input Styling */
+.form-group { margin-bottom: 16px; }
+
+label:not(.checkbox-label) {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.url-input-group { position: relative; }
+
+input[type="text"] {
+  width: 100%;
+  height: var(--input-height);
+  padding: 0 45px 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  background-color: var(--background-alt);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+input[type="text"]:focus {
+  outline: none;
+  border-color: var(--primary);
+  background-color: var(--background);
+  box-shadow: 0 0 0 3px rgba(79, 143, 239, 0.15);
+}
+
+.domain-button {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  bottom: 6px;
+  width: 28px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background-color 0.2s, color 0.2s;
+  z-index: 1;
+}
+.domain-button:hover {
+  background: var(--background-alt);
+  color: var(--text-primary);
+}
+.domain-button svg { width: 18px; height: 18px; fill: currentColor; }
+
+/* Button Styling */
+.primary-button {
+  width: 100%;
+  height: var(--input-height);
+  padding: 0 16px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  box-shadow: var(--shadow);
+}
+.primary-button:hover {
+  background: var(--primary-dark);
+  box-shadow: var(--shadow-md);
+}
+.primary-button:active {
+  transform: scale(0.98);
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+}
+.primary-button svg { width: 16px; height: 16px; fill: white; }
+
+/* Secondary Button Style (for Manage) */
+.secondary-button {
+  width: 100%;
+  height: var(--input-height);
+  padding: 0 16px;
+  background: var(--background-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s, border-color 0.2s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.secondary-button:hover {
+  background: var(--background-alt);
+  border-color: #adb5bd;
+}
+.secondary-button:active {
+  transform: scale(0.98);
+  background: #e9ecef;
+}
+.secondary-button svg { width: 16px; height: 16px; fill: var(--text-secondary); }
+
+/* Compare button uses primary style */
+.compare-button {
+  /* inherits from primary-button, ensure class is applied in HTML */
+}
+
+/* Environment List Items as Cards */
+.env-list { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
+
+.env-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px;
+  background: var(--background-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  margin-bottom: 0;
+  box-shadow: var(--shadow);
+}
+.env-info { flex: 1; }
+.env-info .env-name { margin-bottom: 2px; display: flex; align-items: center; gap: 6px; }
+.env-info .env-text { font-size: 14px; font-weight: 500; }
+.env-info .env-url { font-size: 12px; color: var(--text-light); }
+
+/* Badge Placeholder Style */
+.env-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  text-transform: uppercase;
+  margin-left: 8px;
+  /* Example colors - JS needed to apply correct one */
+  background-color: var(--primary-light);
+  color: var(--primary-dark);
+}
+.env-badge.staging { background-color: #fffbeb; color: #f59e0b; } /* Example */
+.env-badge.production { background-color: #ecfdf5; color: #10b981; } /* Example */
+
+.env-actions button {
+  padding: 6px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-light);
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+.env-actions button:hover {
+  background: var(--background-alt);
+  color: var(--danger);
+}
+.env-actions button svg { width: 16px; height: 16px; fill: currentColor; display: block; }
+
+/* Back Link Styling */
+.back-link {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 6px 10px; /* Increase padding */
+  border-radius: var(--radius-md);
+  background-color: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 14px; /* Slightly larger */
+  font-weight: 500;
+  line-height: 1;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+  cursor: pointer;
+}
+.back-link:hover {
+  background-color: var(--background-alt);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+
+/* Switch Options / Checkbox */
+.switch-options { margin-top: 12px; margin-bottom: 16px; }
+
+.checkbox-label {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 14px;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.checkbox-label input[type="checkbox"] {
+  margin: 0;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  cursor: pointer;
+} 

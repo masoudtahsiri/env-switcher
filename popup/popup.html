@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Env Switcher</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup">
+    <!-- Header Info as a Card -->
+    <div class="card current-env-card">
+      <h2>Current Environment</h2>
+      <div class="current-env">
+        <!-- <span class="env-label">Current Environment</span> -->
+        <div class="env-name">
+          <span class="env-dot"></span>
+          <span class="env-text">Loading...</span>
+          <!-- Placeholder for badge -->
+          <!-- <span class="env-badge staging">Staging</span> -->
+        </div>
+        <div class="env-url">Loading URL...</div>
+      </div>
+    </div>
+
+    <!-- Switcher as a Card -->
+    <div class="card switch-card">
+      <h2>Switch Environment</h2>
+      <div class="select-wrapper">
+        <select id="env-select">
+          <option value="" disabled selected>Select environment...</option>
+          <!-- Options populated by JS -->
+        </select>
+        <!-- SVG arrow handled by CSS background -->
+      </div>
+      <div class="switch-options">
+        <label class="checkbox-label">
+          <input type="checkbox" id="open-new-tab">
+          <span>Open in new tab</span>
+        </label>
+      </div>
+      <button id="switch-btn" class="primary-button">Switch Environment</button>
+    </div>
+
+    <!-- Manage Button as a Card/Section -->
+    <div class="card manage-card">
+      <button id="manage-btn" class="secondary-button">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+          <path d="M5 4a1 1 0 00-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4zM11 4a1 1 0 10-2 0v1.268a2 2 0 000 3.464V16a1 1 0 102 0V8.732a2 2 0 000-3.464V4zM16 3a1 1 0 011 1v7.268a2 2 0 010 3.464V16a1 1 0 11-2 0v-1.268a2 2 0 010-3.464V4a1 1 0 011-1z" />
+        </svg>
+        Manage Environments
+      </button>
+    </div>
+
+    <!-- Compare Button as a Card/Section -->
+    <div class="card compare-card">
+        <button id="compare-btn" class="primary-button">
+          <!-- New Compare Icon -->
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+            <path fill-rule="evenodd" d="M15.042 4.042a8 8 0 011.136 9.113l-3.31 3.31a4 4 0 01-5.576-5.71l3.06-3.06a2.5 2.5 0 013.617 3.48l-1.55 1.55a1 1 0 11-1.414-1.414l1.55-1.55a.5.5 0 00-.707-.707L9.1 11.686a2.5 2.5 0 11-3.535-3.536l3.31-3.31a8 8 0 016.166-.802zM5.958 15.958a8 8 0 01-1.136-9.113l3.31-3.31a4 4 0 015.576 5.71L10.9 12.31a2.5 2.5 0 01-3.617-3.48l1.55-1.55a1 1 0 011.414 1.414l-1.55 1.55a.5.5 0 00.707.707L14.05 8.314a2.5 2.5 0 113.535 3.536l-3.31 3.31a8 8 0 01-8.337.8z" clip-rule="evenodd" />
+          </svg>
+          Compare Environments
+        </button>
+      </div>
+
+    <!-- Removed Footer Element -->
+
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html> 
