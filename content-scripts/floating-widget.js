@@ -17,28 +17,19 @@ class FloatingWidget {
   async init() {
     try {
       // Get environments from storage
-      const storage = await chrome.storage.sync.get(['environments', 'widgetPosition']);
+      const storage = await chrome.storage.sync.get(['environments', 'widgetPosition', 'widgetVisible']);
       console.log('Storage data:', storage);
       
-      if (!storage.environments || !Array.isArray(storage.environments)) {
-        console.error('No environments found in storage');
-        return;
-      }
-
-      this.environments = storage.environments;
+      this.environments = storage.environments || [];
       
       // Get current environment
       const currentUrl = window.location.href;
-      console.log('Current URL:', currentUrl);
       
       // Find current environment by matching the URL
       this.currentEnv = this.environments.find(env => {
         try {
-          // Convert URLs to lowercase for comparison
           const currentUrlLower = currentUrl.toLowerCase();
           const baseUrlLower = env.baseUrl.toLowerCase();
-          
-          // Check if current URL contains the base URL
           return currentUrlLower.includes(baseUrlLower.replace(/https?:\/\/(www\.)?/, ''));
         } catch (e) {
           console.error('Error matching environment:', e);
@@ -46,10 +37,7 @@ class FloatingWidget {
         }
       });
 
-      console.log('Current environment:', this.currentEnv);
-      console.log('All environments:', this.environments);
-
-      // Create widget elements only after environment is detected
+      // Create widget elements
       this.createWidget();
 
       // Set saved position if exists
@@ -60,24 +48,42 @@ class FloatingWidget {
         this.widget.style.right = storage.widgetPosition.right;
       }
 
-      // Add event listeners
-      this.button.addEventListener('click', () => this.toggleMenu());
+      // Add drag event listeners to the button
+      this.button.addEventListener('mousedown', (e) => this.startDragging(e));
+      document.addEventListener('mousemove', (e) => this.drag(e));
+      document.addEventListener('mouseup', () => this.stopDragging());
+
+      // Add click listener for menu toggle
+      this.button.addEventListener('click', (e) => {
+        if (!this.isDragging) {
+          e.stopPropagation();
+          this.toggleMenu();
+        }
+      });
+
+      // Close menu when clicking outside
       document.addEventListener('click', (e) => {
         if (!this.widget.contains(e.target)) {
           this.closeMenu();
         }
       });
 
-      // Add drag event listeners
-      this.widget.addEventListener('mousedown', (e) => this.startDragging(e));
-      document.addEventListener('mousemove', (e) => this.drag(e));
-      document.addEventListener('mouseup', () => this.stopDragging());
-
       // Update menu position on window resize
       window.addEventListener('resize', () => this.updateMenuPosition());
+
+      // Load visibility state
+      this.loadVisibilityState();
+
+      // Setup event listeners
+      this.setupEventListeners();
     } catch (error) {
       console.error('Error initializing widget:', error);
     }
+  }
+
+  async loadVisibilityState() {
+    const { widgetVisible = true } = await chrome.storage.sync.get('widgetVisible');
+    this.setVisibility(widgetVisible);
   }
 
   updateMenuPosition() {
@@ -122,11 +128,10 @@ class FloatingWidget {
       this.initialX = e.clientX - rect.left;
       this.initialY = e.clientY - rect.top;
       
-      // Remove any transition during drag
       this.widget.style.transition = 'none';
-      
-      // Close menu while dragging
       this.closeMenu();
+      
+      e.preventDefault(); // Prevent text selection
     }
   }
 
@@ -135,18 +140,15 @@ class FloatingWidget {
     
     e.preventDefault();
     
-    // Calculate new position
     const x = e.clientX - this.initialX;
     const y = e.clientY - this.initialY;
     
-    // Keep widget within viewport bounds
     const maxX = window.innerWidth - this.widget.offsetWidth;
     const maxY = window.innerHeight - this.widget.offsetHeight;
     
     const boundedX = Math.min(Math.max(0, x), maxX);
     const boundedY = Math.min(Math.max(0, y), maxY);
     
-    // Update position
     this.widget.style.left = `${boundedX}px`;
     this.widget.style.top = `${boundedY}px`;
     this.widget.style.right = 'auto';
@@ -158,7 +160,6 @@ class FloatingWidget {
     
     this.isDragging = false;
     
-    // Save position
     const position = {
       top: this.widget.style.top,
       left: this.widget.style.left,
@@ -167,17 +168,18 @@ class FloatingWidget {
     };
     
     await chrome.storage.sync.set({ widgetPosition: position });
-    
-    // Restore transition
     this.widget.style.transition = '';
   }
 
   toggleMenu() {
-    const isActive = this.menu.classList.contains('active');
-    if (!isActive) {
-      this.updateMenuPosition();
+    if (!this.isDragging) {
+      const isActive = this.menu.classList.contains('active');
+      if (!isActive) {
+        this.updateMenuPosition();
+        this.updateMenu();
+      }
+      this.menu.classList.toggle('active');
     }
-    this.menu.classList.toggle('active');
   }
 
   closeMenu() {
@@ -188,8 +190,14 @@ class FloatingWidget {
     // Create main widget container
     this.widget = document.createElement('div');
     this.widget.className = 'env-switcher-widget';
-
-    // Create floating button
+    
+    // Add close button
+    const closeButton = document.createElement('button');
+    closeButton.className = 'env-switcher-close';
+    closeButton.innerHTML = '×';
+    closeButton.title = 'Hide Widget';
+    
+    // Create main button
     this.button = document.createElement('button');
     this.button.className = 'env-switcher-button';
     this.button.innerHTML = '🔄';
@@ -197,26 +205,12 @@ class FloatingWidget {
     // Create menu
     this.menu = document.createElement('div');
     this.menu.className = 'env-switcher-menu';
-
-    // Create checkbox for new tab option
-    const checkboxContainer = document.createElement('div');
-    checkboxContainer.className = 'env-switcher-menu-item';
-    checkboxContainer.innerHTML = `
-      <label style="display: flex; align-items: center; cursor: pointer;">
-        <input type="checkbox" style="margin-right: 8px;">
-        <span>Open in new tab</span>
-      </label>
-    `;
-    const checkbox = checkboxContainer.querySelector('input');
-    checkbox.addEventListener('change', (e) => {
-      this.openInNewTab = e.target.checked;
-      e.stopPropagation();
-    });
-
+    
     // Add elements to DOM
-    this.menu.appendChild(checkboxContainer);
-    this.widget.appendChild(this.menu);
+    this.widget.appendChild(closeButton);
     this.widget.appendChild(this.button);
+    this.widget.appendChild(this.menu);
+    
     document.body.appendChild(this.widget);
 
     // Populate menu
@@ -224,37 +218,71 @@ class FloatingWidget {
   }
 
   updateMenu() {
-    // Keep the checkbox as the first item
-    const checkbox = this.menu.firstChild;
+    // Clear the menu
     this.menu.innerHTML = '';
-    this.menu.appendChild(checkbox);
 
-    // Find the other environment (not current one)
-    const otherEnv = this.environments.find(env => 
-      env.name !== this.currentEnv.name
-    );
+    // Create checkbox for new tab option
+    const checkboxContainer = document.createElement('div');
+    checkboxContainer.className = 'env-switcher-menu-item';
     
-    if (otherEnv) {
-      const item = document.createElement('div');
-      item.className = 'env-switcher-menu-item';
+    const label = document.createElement('label');
+    label.style.display = 'flex';
+    label.style.alignItems = 'center';
+    label.style.cursor = 'pointer';
+    
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.style.marginRight = '8px';
+    checkbox.checked = this.openInNewTab;
+    checkbox.addEventListener('change', (e) => {
+      this.openInNewTab = e.target.checked;
+      e.stopPropagation();
+    });
+    
+    const span = document.createElement('span');
+    span.textContent = 'Open in new tab';
+    
+    label.appendChild(checkbox);
+    label.appendChild(span);
+    checkboxContainer.appendChild(label);
+    this.menu.appendChild(checkboxContainer);
 
-      const icon = document.createElement('span');
-      icon.className = `env-switcher-menu-item-icon ${otherEnv.name.toLowerCase()}`;
+    // Add environment items
+    if (this.currentEnv) {
+      // Find the other environment (not current one)
+      const otherEnv = this.environments.find(env => 
+        env.name !== this.currentEnv.name
+      );
       
-      const text = document.createElement('span');
-      text.textContent = otherEnv.name;
+      if (otherEnv) {
+        const item = document.createElement('div');
+        item.className = 'env-switcher-menu-item';
 
-      item.appendChild(icon);
-      item.appendChild(text);
-      item.addEventListener('click', () => this.switchEnvironment(otherEnv));
-      
-      this.menu.appendChild(item);
+        const icon = document.createElement('span');
+        icon.className = `env-switcher-menu-item-icon ${otherEnv.name.toLowerCase()}`;
+        
+        const text = document.createElement('span');
+        text.textContent = otherEnv.name;
+
+        item.appendChild(icon);
+        item.appendChild(text);
+        item.addEventListener('click', () => this.switchEnvironment(otherEnv));
+        
+        this.menu.appendChild(item);
+      } else {
+        const noEnvMessage = document.createElement('div');
+        noEnvMessage.className = 'env-switcher-menu-item';
+        noEnvMessage.style.opacity = '0.7';
+        noEnvMessage.style.fontStyle = 'italic';
+        noEnvMessage.textContent = 'No other environments available';
+        this.menu.appendChild(noEnvMessage);
+      }
     } else {
       const noEnvMessage = document.createElement('div');
       noEnvMessage.className = 'env-switcher-menu-item';
       noEnvMessage.style.opacity = '0.7';
       noEnvMessage.style.fontStyle = 'italic';
-      noEnvMessage.textContent = 'No other environments available';
+      noEnvMessage.textContent = 'Current environment not detected';
       this.menu.appendChild(noEnvMessage);
     }
   }
@@ -289,6 +317,25 @@ class FloatingWidget {
       console.error('Error switching environment:', error);
       alert('Error switching environment: ' + error.message);
     }
+  }
+
+  setupEventListeners() {
+    // Add close button listener
+    this.widget.querySelector('.env-switcher-close').addEventListener('click', async () => {
+      await chrome.storage.sync.set({ widgetVisible: false });
+      this.setVisibility(false);
+    });
+
+    // Listen for messages from popup
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      if (message.action === 'toggleWidget') {
+        this.setVisibility(message.visible);
+      }
+    });
+  }
+
+  setVisibility(visible) {
+    this.widget.style.display = visible ? 'block' : 'none';
   }
 }
 

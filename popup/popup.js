@@ -233,6 +233,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     // --- End Manage Button Listener ---
 
+    // Get widget visibility state from storage
+    const { widgetVisible = true } = await chrome.storage.sync.get('widgetVisible');
+    document.getElementById('widgetToggle').checked = widgetVisible;
+
+    // Handle widget visibility toggle
+    document.getElementById('widgetToggle').addEventListener('change', async function(e) {
+      const isVisible = e.target.checked;
+      await chrome.storage.sync.set({ widgetVisible: isVisible });
+      
+      // Send message to content script to update widget visibility
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tabs[0]) {
+        chrome.tabs.sendMessage(tabs[0].id, { 
+          action: 'toggleWidget', 
+          visible: isVisible 
+        });
+      }
+    });
+
   } catch (error) {
     console.error('Error initializing popup:', error);
   }

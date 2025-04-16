@@ -6,11 +6,15 @@
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   cursor: move;
   user-select: none;
+  transition: transform 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .env-switcher-button {
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background: #2563eb;
   border: none;
@@ -21,11 +25,42 @@
   align-items: center;
   justify-content: center;
   transition: transform 0.2s, background-color 0.2s;
+  font-size: 20px;
+  padding: 0;
+  line-height: 1;
+  position: relative;
 }
 
 .env-switcher-button:hover {
   transform: scale(1.05);
   background: #1d4ed8;
+}
+
+.env-switcher-close {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ef4444;
+  color: white;
+  border: 2px solid #ffffff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  z-index: 1;
+}
+
+.env-switcher-close:hover {
+  background: #dc2626;
+  transform: scale(1.1);
 }
 
 .env-switcher-menu {
@@ -36,7 +71,7 @@
   padding: 8px 0;
   min-width: 200px;
   display: none;
-  bottom: 60px;
+  bottom: 50px;
   right: 0;
   z-index: 2147483647;
 }
