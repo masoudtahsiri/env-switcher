@@ -10,18 +10,14 @@
     "webNavigation"
   ],
   "host_permissions": [
-    "https://*.credaily.com/*",
-    "https://*.wpengine.com/*"
+    "<all_urls>"
   ],
   "background": {
     "service_worker": "background.js"
   },
   "content_scripts": [
     {
-      "matches": [
-        "https://*.credaily.com/*",
-        "https://*.wpengine.com/*"
-      ],
+      "matches": ["<all_urls>"],
       "css": ["content-scripts/floating-widget.css"],
       "js": ["content-scripts/floating-widget.js"]
     }

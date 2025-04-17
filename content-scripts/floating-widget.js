@@ -24,58 +24,73 @@ class FloatingWidget {
       
       // Get current environment
       const currentUrl = window.location.href;
+      console.log('Current URL:', currentUrl);
       
       // Find current environment by matching the URL
       this.currentEnv = this.environments.find(env => {
         try {
+          // Convert URLs to lowercase for comparison
           const currentUrlLower = currentUrl.toLowerCase();
           const baseUrlLower = env.baseUrl.toLowerCase();
-          return currentUrlLower.includes(baseUrlLower.replace(/https?:\/\/(www\.)?/, ''));
+          
+          // Remove protocol and www for comparison
+          const cleanCurrentUrl = currentUrlLower.replace(/https?:\/\/(www\.)?/, '');
+          const cleanBaseUrl = baseUrlLower.replace(/https?:\/\/(www\.)?/, '');
+          
+          // Log the comparison
+          console.log('Comparing URLs:', {
+            current: cleanCurrentUrl,
+            base: cleanBaseUrl,
+            matches: cleanCurrentUrl.includes(cleanBaseUrl)
+          });
+          
+          return cleanCurrentUrl.includes(cleanBaseUrl);
         } catch (e) {
           console.error('Error matching environment:', e);
           return false;
         }
       });
 
-      // Create widget elements
-      this.createWidget();
+      console.log('Current environment:', this.currentEnv);
+      console.log('All environments:', this.environments);
+      
+      // Only create widget if we found a matching environment
+      if (this.currentEnv) {
+        // Create widget elements
+        this.createWidget();
 
-      // Set saved position if exists
-      if (storage.widgetPosition) {
-        this.widget.style.top = storage.widgetPosition.top;
-        this.widget.style.left = storage.widgetPosition.left;
-        this.widget.style.bottom = storage.widgetPosition.bottom;
-        this.widget.style.right = storage.widgetPosition.right;
+        // Set saved position if exists
+        if (storage.widgetPosition) {
+          this.widget.style.top = storage.widgetPosition.top;
+          this.widget.style.left = storage.widgetPosition.left;
+          this.widget.style.bottom = storage.widgetPosition.bottom;
+          this.widget.style.right = storage.widgetPosition.right;
+        }
+
+        // Add event listeners
+        this.button.addEventListener('click', () => this.toggleMenu());
+        document.addEventListener('click', (e) => {
+          if (!this.widget.contains(e.target)) {
+            this.closeMenu();
+          }
+        });
+
+        // Add drag event listeners
+        this.widget.addEventListener('mousedown', (e) => this.startDragging(e));
+        document.addEventListener('mousemove', (e) => this.drag(e));
+        document.addEventListener('mouseup', () => this.stopDragging());
+
+        // Update menu position on window resize
+        window.addEventListener('resize', () => this.updateMenuPosition());
+
+        // Load visibility state
+        this.loadVisibilityState();
+
+        // Setup event listeners
+        this.setupEventListeners();
+      } else {
+        console.log('No matching environment found for current URL');
       }
-
-      // Add drag event listeners to the button
-      this.button.addEventListener('mousedown', (e) => this.startDragging(e));
-      document.addEventListener('mousemove', (e) => this.drag(e));
-      document.addEventListener('mouseup', () => this.stopDragging());
-
-      // Add click listener for menu toggle
-      this.button.addEventListener('click', (e) => {
-        if (!this.isDragging) {
-          e.stopPropagation();
-          this.toggleMenu();
-        }
-      });
-
-      // Close menu when clicking outside
-      document.addEventListener('click', (e) => {
-        if (!this.widget.contains(e.target)) {
-          this.closeMenu();
-        }
-      });
-
-      // Update menu position on window resize
-      window.addEventListener('resize', () => this.updateMenuPosition());
-
-      // Load visibility state
-      this.loadVisibilityState();
-
-      // Setup event listeners
-      this.setupEventListeners();
     } catch (error) {
       console.error('Error initializing widget:', error);
     }
@@ -217,6 +232,30 @@ class FloatingWidget {
     this.updateMenu();
   }
 
+  // Generate a unique color based on environment name
+  generateColor(name) {
+    // Create a hash of the name
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    
+    // Convert hash to RGB values
+    const r = (hash & 0xFF0000) >> 16;
+    const g = (hash & 0x00FF00) >> 8;
+    const b = hash & 0x0000FF;
+    
+    // Ensure minimum brightness
+    const minBrightness = 100;
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    if (brightness < minBrightness) {
+      const factor = minBrightness / brightness;
+      return `rgb(${Math.min(255, Math.round(r * factor))}, ${Math.min(255, Math.round(g * factor))}, ${Math.min(255, Math.round(b * factor))})`;
+    }
+    
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+
   updateMenu() {
     // Clear the menu
     this.menu.innerHTML = '';
@@ -249,26 +288,30 @@ class FloatingWidget {
 
     // Add environment items
     if (this.currentEnv) {
-      // Find the other environment (not current one)
-      const otherEnv = this.environments.find(env => 
+      // Get all environments except the current one
+      const otherEnvs = this.environments.filter(env => 
         env.name !== this.currentEnv.name
       );
       
-      if (otherEnv) {
-        const item = document.createElement('div');
-        item.className = 'env-switcher-menu-item';
+      if (otherEnvs.length > 0) {
+        otherEnvs.forEach(otherEnv => {
+          const item = document.createElement('div');
+          item.className = 'env-switcher-menu-item';
 
-        const icon = document.createElement('span');
-        icon.className = `env-switcher-menu-item-icon ${otherEnv.name.toLowerCase()}`;
-        
-        const text = document.createElement('span');
-        text.textContent = otherEnv.name;
+          const icon = document.createElement('span');
+          icon.className = 'env-switcher-menu-item-icon';
+          // Set the background color dynamically
+          icon.style.backgroundColor = this.generateColor(otherEnv.name);
+          
+          const text = document.createElement('span');
+          text.textContent = otherEnv.name;
 
-        item.appendChild(icon);
-        item.appendChild(text);
-        item.addEventListener('click', () => this.switchEnvironment(otherEnv));
-        
-        this.menu.appendChild(item);
+          item.appendChild(icon);
+          item.appendChild(text);
+          item.addEventListener('click', () => this.switchEnvironment(otherEnv));
+          
+          this.menu.appendChild(item);
+        });
       } else {
         const noEnvMessage = document.createElement('div');
         noEnvMessage.className = 'env-switcher-menu-item';

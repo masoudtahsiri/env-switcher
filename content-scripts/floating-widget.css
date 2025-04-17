@@ -125,6 +125,19 @@
   font-weight: 500;
 }
 
+.env-switcher-menu-item-icon {
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  border-radius: 50%;
+  margin: 0;
+}
+
+.env-switcher-menu.active {
+  display: block;
+}
+
+/* Position classes */
 .env-switcher-menu.position-top {
   bottom: 60px;
   top: auto;
@@ -149,25 +162,4 @@
   left: 60px;
   right: auto;
   top: 0;
-}
-
-.env-switcher-menu.active {
-  display: block;
-}
-
-.env-switcher-menu-item-icon {
-  width: 16px;
-  height: 16px;
-  min-width: 16px;
-  border-radius: 50%;
-  background: #10b981;
-  margin: 0;
-}
-
-.env-switcher-menu-item-icon.staging {
-  background: #f59e0b;
-}
-
-.env-switcher-menu-item-icon.dev {
-  background: #6366f1;
 } 
