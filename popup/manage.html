@@ -19,8 +19,16 @@
       <h2>Add New Environment</h2>
       <form id="add-env-form">
         <div class="form-group">
-          <label for="env-name">Name</label>
-          <input type="text" id="env-name" placeholder="e.g., Production" required>
+          <label for="env-type">Environment Type</label>
+          <select id="env-type" class="select-input" required>
+            <option value="" disabled selected>Select environment type...</option>
+            <option value="production">Production</option>
+            <option value="staging">Staging</option>
+            <option value="development">Development</option>
+            <option value="qa">QA</option>
+            <option value="uat">UAT</option>
+            <option value="custom">Custom/Other</option>
+          </select>
         </div>
         <div class="form-group">
           <label for="env-url">URL</label>

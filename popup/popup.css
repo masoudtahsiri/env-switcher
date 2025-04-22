@@ -116,6 +116,27 @@ h2 {
   background: var(--primary);
 }
 
+/* Environment color indicators */
+.env-dot.staging {
+  background-color: #F9D74C; /* Yellow color for staging */
+}
+
+.env-dot.production {
+  background-color: #34D399; /* Green color for production */
+}
+
+.env-dot.development {
+  background-color: #60A5FA; /* Blue color for development */
+}
+
+.env-dot.uat {
+  background-color: #A78BFA; /* Purple color for UAT */
+}
+
+.env-dot.qa {
+  background-color: #F97316; /* Orange color for QA */
+}
+
 .env-text {
   font-size: 16px;
   font-weight: 500;

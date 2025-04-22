@@ -95,137 +95,169 @@
   transform: scale(0.95);
 }
 
-/* NEW Menu Styles */
+/* Widget Menu Styles Only */
+
+/* Dropdown Container */
 .env-switcher-menu {
-  position: absolute; /* Keep positioning relative */
-  background-color: #ffffff !important; /* Override reset */
-  border-radius: 8px !important; /* Override reset */
-  border: 1px solid #cccccc !important; /* Override reset */
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important; /* Override reset */
-  min-width: 250px !important; /* Override reset */
-  padding: 8px 0 !important; /* Apply padding here */
-  overflow: hidden !important; /* Override reset */
-  box-sizing: border-box !important; /* From reset */
-  width: 220px; /* Keep specific width if needed */
+  position: absolute;
+  background-color: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #cccccc;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 200px;
+  padding: 8px 12px; /* Padding: 8px top/bottom, 12px left/right */
+  overflow: hidden;
+  box-sizing: border-box;
+  width: 220px;
   z-index: -1;
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.1s ease-out, visibility 0.1s ease-out;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-size: 14px;
+  line-height: normal;
+  text-align: left;
 }
 
 .env-switcher-menu.visible {
   opacity: 1;
   visibility: visible;
-  z-index: 1;
+  z-index: 10;
 }
 
-/* Menu Positioning (Keep in case JS uses them) */
+/* Menu Positioning */
 .env-switcher-menu.position-top { bottom: 60px; top: auto; }
 .env-switcher-menu.position-bottom { top: 60px; bottom: auto; }
 .env-switcher-menu.position-left { right: auto; left: 0; }
 .env-switcher-menu.position-right { left: auto; right: 0; }
 
-/* NEW "Open in New Tab" row */
-.env-switcher-setting-item {
-  display: flex !important; /* Override reset */
-  align-items: center !important; /* Override reset */
-  padding: 8px 12px !important; /* Specific padding */
-  font-size: 14px !important; /* Override reset */
-  color: #666666 !important; /* Override reset */
-  cursor: pointer !important; /* Override reset */
-  background-color: transparent !important; /* Ensure no inherited background */
-}
-
-/* NEW Checkbox */
-.env-switcher-setting-item input[type="checkbox"] {
-  width: 16px !important; /* Override reset */
-  height: 16px !important; /* Override reset */
-  margin-right: 8px !important; /* Override reset */
-  flex-shrink: 0 !important; /* Override reset */
-  margin-left: 0 !important; /* Ensure no extra left margin from reset */
-  margin-top: 0 !important; /* Ensure no extra top margin from reset */
-  margin-bottom: 0 !important; /* Ensure no extra bottom margin from reset */
-  padding: 0 !important; /* Ensure no extra padding from reset */
-  cursor: pointer !important; /* Ensure cursor */
-}
-
-/* NEW Divider after "Open in New Tab" */
-.env-switcher-setting-item::after {
-  content: "" !important; /* Override reset */
-  display: block !important; /* Override reset */
-  height: 1px !important; /* Override reset */
-  background-color: #dddddd !important; /* Override reset */
-  margin-top: 8px !important; /* Override reset */
-  margin-left: 12px !important; /* Indent like padding */
-  margin-right: 12px !important; /* Indent like padding */
-  margin-bottom: 0 !important; /* Ensure no bottom margin */
-}
-
-/* NEW Environment Item */
+/* Shared Row Styles */
+.env-switcher-setting-item,
 .env-switcher-env-item {
-  display: flex !important; /* Override reset */
-  align-items: center !important; /* Override reset */
-  padding: 10px 12px !important; /* Specific padding */
-  font-size: 14px !important; /* Override reset */
-  color: #222222 !important; /* Override reset */
-  cursor: pointer !important; /* Override reset */
-  transition: background-color 0.2s ease !important; /* Override reset */
-  background-color: transparent !important; /* Ensure no inherited background */
-  font-weight: normal !important; /* Explicitly normal */
+  display: flex !important;
+  align-items: center !important;
+  padding: 8px 12px !important; /* Consistent padding: 8px top/bottom, 12px left/right */
+  font-size: 14px !important;
+  cursor: pointer !important;
+  background-color: transparent !important;
 }
 
-/* NEW Environment Item Icon */
+/* "Open in New Tab" row specific */
+.env-switcher-setting-item {
+  color: #666666;
+  position: relative; /* Needed for ::after */
+}
+
+/* Checkbox */
+.env-switcher-setting-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0 8px 0 0; /* Margin: 8px right */
+  padding: 0;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+/* Label inside setting item */
+.env-switcher-setting-item label {
+  cursor: pointer;
+  flex-grow: 1;
+  margin: 0;
+  padding: 0;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  text-align: inherit;
+}
+
+/* Divider After Open in New Tab */
+.env-switcher-setting-item::after {
+  content: "";
+  position: absolute;
+  bottom: -4px; /* Position slightly below the row */
+  left: 0; /* Span full width within the padded container */
+  right: 0; /* Span full width within the padded container */
+  height: 1px;
+  background-color: #dddddd;
+}
+
+/* Environment Row specific */
+.env-switcher-env-item {
+  color: #222222;
+  transition: background-color 0.2s ease;
+  font-weight: normal;
+}
+
+/* Environment Icon */
 .env-switcher-env-item .env-switcher-menu-item-icon {
-  display: flex !important; /* Override reset */
-  align-items: center !important; /* Override reset */
-  justify-content: center !important; /* Override reset */
-  width: 24px !important; /* Override reset */
-  height: 24px !important; /* Override reset */
-  font-size: 16px !important; /* Override reset */
-  margin-right: 8px !important; /* Override reset */
-  line-height: 1 !important; /* Add explicit line height */
-  flex-shrink: 0 !important; /* Ensure it doesn't shrink */
-  padding: 0 !important; /* Reset override */
-  margin-top: 0 !important; /* Reset override */
-  margin-bottom: 0 !important; /* Reset override */
-  margin-left: 0 !important; /* Reset override */
+  width: 14px !important; /* Icon size: 14px */
+  height: 14px !important; /* Icon size: 14px */
+  border-radius: 50% !important;
+  background-color: #9ca3af !important; /* Default grey */
+  margin: 0 8px 0 0 !important; /* Margin: 8px right */
+  padding: 0 !important;
+  flex-shrink: 0 !important;
 }
 
-/* NEW Hover State */
-.env-switcher-env-item:hover {
-  background-color: #f5f5f5 !important; /* Override reset */
+/* Environment Colors */
+.env-switcher-env-item .env-switcher-menu-item-icon.production {
+  background-color: #34D399 !important; /* Green */
 }
-
-/* NEW Active/Selected State */
-.env-switcher-env-item.active {
-  background-color: #e6f0ff !important; /* Override reset */
+.env-switcher-env-item .env-switcher-menu-item-icon.staging {
+  background-color: #F9D74C !important; /* Yellow */
 }
-
-/* Active environment text bold */
-.env-switcher-env-item.active .env-switcher-menu-item-name {
-  font-weight: bold !important; /* Override reset and normal weight */
+.env-switcher-env-item .env-switcher-menu-item-icon.development {
+  background-color: #60A5FA !important; /* Blue */
 }
+.env-switcher-env-item .env-switcher-menu-item-icon.qa {
+  background-color: #F97316 !important; /* Orange */
+}
+.env-switcher-env-item .env-switcher-menu-item-icon.uat {
+  background-color: #A78BFA !important; /* Purple */
+}
+/* Custom uses default grey */
 
-/* Environment Item Name (ensure reset doesn't interfere) */
+/* Environment Name */
 .env-switcher-menu-item-name {
-  font-weight: normal !important; /* Default weight */
-  font-size: 14px !important; /* From env-item */
-  color: #222222 !important; /* From env-item */
-  flex-grow: 1 !important; /* Override reset */
-  line-height: normal !important; /* Reset */
-  text-align: left !important; /* Reset */
-  padding: 0 !important; /* Reset */
-  margin: 0 !important; /* Reset */
+  flex-grow: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0;
+  padding: 0;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  text-align: inherit;
+  font-weight: inherit;
 }
 
-/* No environments message (Keep basic style) */
+/* Hover States */
+.env-switcher-env-item:hover {
+  background-color: #f5f5f5 !important;
+}
+.env-switcher-setting-item:hover {
+  background-color: #f9f9f9 !important;
+}
+
+/* Active (selected environment) */
+.env-switcher-env-item.active {
+  background-color: #e6f0ff;
+}
+
+/* Bold active env */
+.env-switcher-env-item.active .env-switcher-menu-item-name {
+  font-weight: bold;
+}
+
+/* No environments message */
 .env-switcher-menu-no-envs {
-  padding: 12px !important;
-  font-size: 13px !important;
-  color: #888888 !important;
-  text-align: center !important;
-  cursor: default !important;
-  line-height: normal !important;
+  padding: 12px 0; /* Only vertical padding */
+  font-size: 13px;
+  color: #888888;
+  text-align: center;
+  cursor: default;
+  line-height: normal;
 }
 
 /* REMOVE OLD/CONFLICTING RULES (Commented out for safety, can be deleted later) */

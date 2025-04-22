@@ -1,3 +1,28 @@
+// Function to determine environment type based on name (legacy support)
+function getEnvironmentType(env) {
+  // If environment has a type property, use it
+  if (env.type) {
+    return env.type;
+  }
+  
+  // Legacy support: determine type from name
+  if (!env.name) return '';
+  
+  const lowerName = env.name.toLowerCase();
+  if (lowerName.includes('staging') || lowerName.includes('stg')) {
+    return 'staging';
+  } else if (lowerName.includes('prod') || lowerName.includes('production')) {
+    return 'production';
+  } else if (lowerName.includes('dev') || lowerName.includes('development')) {
+    return 'development';
+  } else if (lowerName.includes('uat')) {
+    return 'uat';
+  } else if (lowerName.includes('qa') || lowerName.includes('test')) {
+    return 'qa';
+  }
+  return 'custom';
+}
+
 class Popup {
   constructor() {
     this.environments = [];
@@ -28,11 +53,13 @@ class Popup {
   }
 
   updateEnvironmentList() {
-    const envList = document.getElementById('environment-list');
-    if (!envList) return;
+    const envSelect = document.getElementById('env-select');
+    if (!envSelect) return;
 
     // Clear existing options
-    envList.innerHTML = '';
+    while (envSelect.options.length > 1) {
+      envSelect.remove(1);
+    }
 
     // Get current environment and URL
     const currentUrl = this.currentTab.url;
@@ -69,10 +96,7 @@ class Popup {
 
     // If no current environment is found, don't show any environments in the dropdown
     if (!currentEnv) {
-      const currentEnvDisplay = document.getElementById('current-environment');
-      if (currentEnvDisplay) {
-        currentEnvDisplay.textContent = 'Not in any environment';
-      }
+      this.updateCurrentEnvironmentDisplay(null);
       return;
     }
 
@@ -106,14 +130,41 @@ class Popup {
         const option = document.createElement('option');
         option.value = env.name;
         option.textContent = env.name;
-        envList.appendChild(option);
+        envSelect.appendChild(option);
       }
     });
 
     // Update current environment display
-    const currentEnvDisplay = document.getElementById('current-environment');
-    if (currentEnvDisplay) {
-      currentEnvDisplay.textContent = currentEnv.name;
+    this.updateCurrentEnvironmentDisplay(currentEnv);
+  }
+
+  // Helper method to update the current environment display
+  updateCurrentEnvironmentDisplay(env) {
+    const envNameElement = document.querySelector('.env-name .env-text');
+    const envUrlElement = document.querySelector('.env-url');
+    const envDotElement = document.querySelector('.env-dot');
+    
+    if (!envNameElement || !envUrlElement || !envDotElement) {
+      console.error('Environment display elements not found');
+      return;
+    }
+    
+    if (env) {
+      // Update text content
+      envNameElement.textContent = env.name;
+      envUrlElement.textContent = env.url;
+      
+      // Update dot color based on environment type
+      envDotElement.className = 'env-dot';
+      const envType = getEnvironmentType(env);
+      if (envType) {
+        envDotElement.classList.add(envType);
+      }
+    } else {
+      // No environment found
+      envNameElement.textContent = 'Unknown Environment';
+      envUrlElement.textContent = this.currentTab ? this.currentTab.url : 'Unknown URL';
+      envDotElement.className = 'env-dot';
     }
   }
 
@@ -132,8 +183,8 @@ class Popup {
   }
 
   async switchEnvironment() {
-    const envList = document.getElementById('environment-list');
-    const selectedEnvName = envList.value;
+    const envSelect = document.getElementById('env-select');
+    const selectedEnvName = envSelect.value;
     
     if (!selectedEnvName) {
       alert('Please select an environment to switch to');
@@ -215,4 +266,51 @@ class Popup {
 }
 
 // Initialize popup
-new Popup(); 
+new Popup();
+
+// Update the current environment section
+async function updateCurrentEnvironment() {
+  try {
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const currentUrl = tabs[0].url;
+    
+    // Get environments from storage
+    const { environments = [] } = await chrome.storage.sync.get('environments');
+    
+    // Find a matching environment
+    const currentEnv = environments.find(env => {
+      return currentUrl.includes(new URL(env.url).host);
+    });
+    
+    const envNameElement = document.querySelector('.env-name .env-text');
+    const envUrlElement = document.querySelector('.env-url');
+    const envDotElement = document.querySelector('.env-dot');
+    
+    if (currentEnv) {
+      // Set environment name and URL
+      envNameElement.textContent = currentEnv.name;
+      envUrlElement.textContent = currentEnv.url;
+      
+      // Set environment color based on type
+      const envType = getEnvironmentType(currentEnv);
+      envDotElement.className = 'env-dot';
+      if (envType) {
+        envDotElement.classList.add(envType);
+      }
+      
+      // Remove current environment from dropdown options
+      const currentHost = new URL(currentEnv.url).host;
+      environments.forEach(env => {
+        if (env.name !== currentEnv.name && new URL(env.url).host === currentHost) {
+          // Don't add the current environment to the dropdown
+        }
+      });
+    } else {
+      envNameElement.textContent = 'Unknown Environment';
+      envUrlElement.textContent = currentUrl;
+      envDotElement.className = 'env-dot';
+    }
+  } catch (error) {
+    console.error('Error updating current environment:', error);
+  }
+} 

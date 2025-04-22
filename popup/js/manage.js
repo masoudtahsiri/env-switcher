@@ -1,3 +1,22 @@
+// Helper function to generate the base environment name from type
+function generateBaseName(type, url) {
+  if (type === 'custom') {
+    try {
+      const urlObj = new URL(url);
+      return urlObj.hostname.replace(/^www\./, '');
+    } catch (e) {
+      console.error('Invalid URL for custom name:', url);
+      return 'Custom'; // Fallback name
+    }
+  }
+  // Handle acronyms like UAT, QA
+  if (type === 'uat' || type === 'qa') {
+    return type.toUpperCase();
+  }
+  // Capitalize first letter for others
+  return type.charAt(0).toUpperCase() + type.slice(1);
+}
+
 class EnvironmentManager {
   constructor() {
     this.initialize();
@@ -13,11 +32,11 @@ class EnvironmentManager {
   }
 
   async saveEnvironment() {
-    const name = document.getElementById('env-name').value.trim();
+    const type = document.getElementById('env-type').value.trim();
     const url = document.getElementById('env-url').value.trim();
     const group = document.getElementById('env-group').value.trim();
 
-    if (!name || !url) {
+    if (!type || !url) {
       alert('Please fill in all required fields');
       return;
     }
@@ -29,15 +48,26 @@ class EnvironmentManager {
       // Get existing environments
       const { environments = [] } = await chrome.storage.sync.get('environments');
 
+      // Create name based on type and URL
+      const urlObj = new URL(url);
+      let name = type.charAt(0).toUpperCase() + type.slice(1);
+      if (type === 'custom') {
+        // For custom type, use host as name
+        name = urlObj.hostname.replace(/^www\./, '');
+      }
+
       // Check if name already exists
-      if (environments.some(env => env.name === name)) {
-        alert('An environment with this name already exists');
-        return;
+      let counter = 1;
+      let uniqueName = name;
+      while (environments.some(env => env.name === uniqueName)) {
+        uniqueName = `${name} ${counter}`;
+        counter++;
       }
 
       // Add new environment
       environments.push({
-        name,
+        name: uniqueName,
+        type,
         url,
         group: group || null // Store group if provided
       });
@@ -46,15 +76,17 @@ class EnvironmentManager {
       await chrome.storage.sync.set({ environments });
 
       // Update UI
-      this.updateEnvironmentList();
+      await this.updateEnvironmentList();
+      await this.updateGroupsList();
       
       // Clear form
-      document.getElementById('env-name').value = '';
+      document.getElementById('env-type').value = '';
       document.getElementById('env-url').value = '';
       document.getElementById('env-group').value = '';
 
       alert('Environment saved successfully!');
     } catch (error) {
+      console.error('Error saving environment:', error);
       alert('Error saving environment: ' + error.message);
     }
   }
@@ -90,10 +122,14 @@ class EnvironmentManager {
       envs.forEach(env => {
         const item = document.createElement('div');
         item.className = 'env-item';
+        
+        // Get environment type class
+        const envType = env.type || this.getEnvironmentTypeFromName(env.name);
+        
         item.innerHTML = `
           <div class="env-info">
             <div class="env-name">
-              <span class="env-dot"></span>
+              <span class="env-dot ${envType}"></span>
               <span class="env-text">${env.name}</span>
               ${env.group ? `<span class="env-badge">${env.group}</span>` : ''}
             </div>
@@ -193,18 +229,25 @@ class EnvironmentManager {
         
         if (env) {
           // Verify this is the correct environment
-          console.log(`Loading environment: Name: ${env.name}, URL: ${env.url}, Group: ${env.group || 'No Group'}`);
+          console.log(`Loading environment: Name: ${env.name}, Type: ${env.type || 'none'}, URL: ${env.url}, Group: ${env.group || 'No Group'}`);
           
           // Populate form with environment data
-          document.getElementById('env-name').value = env.name;
+          const typeSelect = document.getElementById('env-type');
+          // If env has type property, use it, otherwise try to determine from name
+          const envType = env.type || this.getEnvironmentTypeFromName(env.name);
+          if (envType && typeSelect.querySelector(`option[value="${envType}"]`)) {
+            typeSelect.value = envType;
+          } else {
+            // If type doesn't match any option, select custom
+            typeSelect.value = 'custom';
+          }
+          
           document.getElementById('env-url').value = env.url;
           document.getElementById('env-group').value = env.group || '';
           
           // Change button text to "Update"
           const submitButton = document.querySelector('button[type="submit"]');
           submitButton.textContent = 'Update Environment';
-          
-          // Store both name and URL to uniquely identify the environment being edited
           submitButton.dataset.editing = envName;
           submitButton.dataset.editingUrl = envUrl;
           
@@ -237,7 +280,7 @@ class EnvironmentManager {
             
             // If this was the last environment, clear the form
             if (updatedEnvs.length === 0) {
-              document.getElementById('env-name').value = '';
+              document.getElementById('env-type').value = '';
               document.getElementById('env-url').value = '';
               document.getElementById('env-group').value = '';
               const submitButton = document.querySelector('button[type="submit"]');
@@ -260,14 +303,14 @@ class EnvironmentManager {
     document.getElementById('add-env-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       
-      const name = document.getElementById('env-name').value.trim();
+      const type = document.getElementById('env-type').value.trim();
       const url = document.getElementById('env-url').value.trim();
       const group = document.getElementById('env-group').value.trim();
       const submitButton = e.target.querySelector('button[type="submit"]');
-      const isEditing = submitButton.dataset.editing;
-      const editingUrl = submitButton.dataset.editingUrl;
+      const isEditing = submitButton.dataset.editing; // Original name of env being edited
+      const editingUrl = submitButton.dataset.editingUrl; // Original URL of env being edited
 
-      if (!name || !url) {
+      if (!type || !url) {
         alert('Please fill in all required fields');
         return;
       }
@@ -279,19 +322,31 @@ class EnvironmentManager {
         // Get existing environments
         const { environments = [] } = await chrome.storage.sync.get('environments');
 
+        // Generate the base name using the helper function
+        const generatedName = generateBaseName(type, url);
+
         if (isEditing) {
-          console.log('Updating environment with name:', isEditing, 'and URL:', editingUrl);
-          // Update existing environment - use both name and URL to find the exact environment
+          console.log('Updating environment originally named:', isEditing, 'at URL:', editingUrl);
+          // Find the environment using its original name and URL
           const index = environments.findIndex(env => env.name === isEditing && env.url === editingUrl);
           console.log('Found environment at index:', index, environments[index]);
           
           if (index !== -1) {
             const oldEnvironment = environments[index];
-            console.log('Updating from:', oldEnvironment);
-            console.log('Updating to:', { name, url, group: group || null });
             
+            // Check if the NEW combination of type and URL already exists (excluding the one being edited)
+            if (environments.some((env, i) => i !== index && env.type === type && env.url === url)) {
+              alert('Another environment with this type and URL already exists.');
+              return;
+            }
+            
+            console.log('Updating from:', oldEnvironment);
+            console.log('Updating to:', { name: generatedName, type, url, group: group || null });
+            
+            // Update the environment, using the newly generated name
             environments[index] = {
-              name,
+              name: generatedName, // Use the generated name directly
+              type,
               url,
               group: group || null
             };
@@ -304,7 +359,7 @@ class EnvironmentManager {
             submitButton.textContent = 'Add Environment';
             delete submitButton.dataset.editing;
             delete submitButton.dataset.editingUrl;
-            document.getElementById('env-name').value = '';
+            document.getElementById('env-type').value = '';
             document.getElementById('env-url').value = '';
             document.getElementById('env-group').value = '';
 
@@ -318,15 +373,16 @@ class EnvironmentManager {
             alert(`Error: Could not find environment "${isEditing}" to update`);
           }
         } else {
-          // Check if name and URL already exists
-          if (environments.some(env => env.name === name && env.url === url)) {
-            alert('An environment with this name and URL already exists');
+          // Check if type and URL already exists when adding
+          if (environments.some(env => env.type === type && env.url === url)) {
+            alert('An environment with this type and URL already exists');
             return;
           }
 
-          // Add new environment
+          // Add new environment using the generated name directly
           environments.push({
-            name,
+            name: generatedName, // Use the generated name directly
+            type,
             url,
             group: group || null
           });
@@ -335,7 +391,7 @@ class EnvironmentManager {
           await chrome.storage.sync.set({ environments });
 
           // Reset form
-          document.getElementById('env-name').value = '';
+          document.getElementById('env-type').value = '';
           document.getElementById('env-url').value = '';
           document.getElementById('env-group').value = '';
 
@@ -401,9 +457,49 @@ class EnvironmentManager {
         deleteGroupBtn.disabled = false;
         
         // Focus on the form
-        document.getElementById('env-name').focus();
+        document.getElementById('env-type').focus();
       }
     });
+
+    // Add event listener for the set domain button
+    document.getElementById('set-domain-btn').addEventListener('click', async () => {
+      try {
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (tabs.length > 0) {
+          const currentUrl = tabs[0].url;
+          const urlField = document.getElementById('env-url');
+          if (currentUrl && urlField) {
+            const urlObj = new URL(currentUrl);
+            urlField.value = urlObj.origin;
+          }
+        } else {
+          console.error('No active tab found.');
+          alert('Could not get URL from the current tab.');
+        }
+      } catch (error) {
+        console.error('Error fetching current URL:', error);
+        alert('Error fetching current URL. Make sure the tab is fully loaded.');
+      }
+    });
+  }
+
+  // Helper function to determine environment type from name (for backward compatibility)
+  getEnvironmentTypeFromName(name) {
+    if (!name) return 'custom';
+    
+    const lowerName = name.toLowerCase();
+    if (lowerName.includes('staging') || lowerName.includes('stg')) {
+      return 'staging';
+    } else if (lowerName.includes('prod') || lowerName.includes('production')) {
+      return 'production';
+    } else if (lowerName.includes('dev') || lowerName.includes('development')) {
+      return 'development';
+    } else if (lowerName.includes('uat')) {
+      return 'uat';
+    } else if (lowerName.includes('qa') || lowerName.includes('test')) {
+      return 'qa';
+    }
+    return 'custom';
   }
 }
 

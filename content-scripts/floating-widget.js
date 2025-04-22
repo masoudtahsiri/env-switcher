@@ -1,3 +1,21 @@
+// Helper function to determine environment type
+function getEnvironmentType(env) {
+  // Prefer the 'type' property if it exists
+  if (env && env.type) {
+    return env.type;
+  }
+  // Fallback to checking the name for legacy environments
+  if (env && env.name) {
+    const lowerName = env.name.toLowerCase();
+    if (lowerName.includes('staging') || lowerName.includes('stg')) return 'staging';
+    if (lowerName.includes('prod') || lowerName.includes('production')) return 'production';
+    if (lowerName.includes('dev') || lowerName.includes('development')) return 'development';
+    if (lowerName.includes('uat')) return 'uat';
+    if (lowerName.includes('qa') || lowerName.includes('test')) return 'qa';
+  }
+  return 'custom'; // Default to custom if no type or relevant name found
+}
+
 class FloatingWidget {
   constructor() {
     this.widget = null;
@@ -385,68 +403,33 @@ class FloatingWidget {
 
   // Add try-catch around openInNewTab storage access in updateMenu's listener
   updateMenu() {
-    // Find menu content container *inside* this method now
-    const menuContent = this.widget.querySelector('.env-switcher-menu-content');
-    if (!menuContent) {
-      console.error('Menu content container not found during updateMenu');
-      return; 
-    }
-    
-    menuContent.innerHTML = ''; // Clear previous content
-    menuContent.setAttribute('role', 'menu');
-    menuContent.setAttribute('aria-label', 'Environment Actions'); // General label for the menu
+    this.menu.innerHTML = ''; // Clear existing items
 
-    // --- 1. "Open in New Tab" Section (Pinned Top) ---
-    const checkboxContainer = document.createElement('div');
-    checkboxContainer.className = 'env-switcher-menu-item env-switcher-setting-item'; // Added specific class
-    checkboxContainer.setAttribute('role', 'menuitemcheckbox');
-    checkboxContainer.setAttribute('aria-label', 'Open in New Tab setting');
-    checkboxContainer.setAttribute('aria-checked', this.openInNewTab.toString());
-    checkboxContainer.tabIndex = 0; // Make it focusable
-
-    const newTabCheckbox = document.createElement('input');
-    newTabCheckbox.type = 'checkbox';
-    newTabCheckbox.id = 'new-tab-checkbox'; // Keep ID for label association
-    newTabCheckbox.checked = this.openInNewTab;
-    newTabCheckbox.tabIndex = -1; // Prevent double tabbing
-
-    const checkboxLabel = document.createElement('label');
-    checkboxLabel.htmlFor = 'new-tab-checkbox';
-    checkboxLabel.textContent = 'Open in New Tab';
-
-    checkboxContainer.appendChild(newTabCheckbox);
-    checkboxContainer.appendChild(checkboxLabel);
-    menuContent.appendChild(checkboxContainer);
-
-    // Add click/keyboard listener for the container
-    checkboxContainer.addEventListener('click', async () => { // Make listener async
-        this.openInNewTab = !this.openInNewTab;
-        newTabCheckbox.checked = this.openInNewTab;
-        checkboxContainer.setAttribute('aria-checked', this.openInNewTab.toString());
-        try {
-            await chrome.storage.sync.set({ openInNewTab: this.openInNewTab });
-        } catch (error) {
-             console.error('Error saving openInNewTab setting:', error);
-             // Optionally revert the UI change if saving fails
-             // this.openInNewTab = !this.openInNewTab; 
-             // newTabCheckbox.checked = this.openInNewTab;
-             // checkboxContainer.setAttribute('aria-checked', this.openInNewTab.toString());
-        }
+    // "Open in New Tab" checkbox
+    const newTabOption = document.createElement('div');
+    newTabOption.className = 'env-switcher-setting-item';
+    newTabOption.innerHTML = `
+      <label class="checkbox-label">
+        <input type="checkbox" id="widget-open-new-tab">
+        <span>Open in New Tab</span>
+      </label>
+    `;
+    this.menu.appendChild(newTabOption);
+    // Persist checkbox state
+    const newTabCheckbox = newTabOption.querySelector('#widget-open-new-tab');
+    chrome.storage.local.get(['openInNewTab'], (result) => {
+      newTabCheckbox.checked = result.openInNewTab || false;
     });
-    checkboxContainer.addEventListener('keydown', (e) => {
-         if (e.key === 'Enter' || e.key === ' ') {
-             checkboxContainer.click();
-             e.preventDefault();
-         }
+    newTabCheckbox.addEventListener('change', (event) => {
+      chrome.storage.local.set({ openInNewTab: event.target.checked });
     });
 
+    // Add a divider
+    const divider = document.createElement('hr');
+    divider.className = 'env-switcher-menu-divider';
+    this.menu.appendChild(divider);
 
-    // --- Divider 1 ---
-    const divider1 = document.createElement('div');
-    divider1.className = 'env-switcher-menu-divider';
-    menuContent.appendChild(divider1);
-
-    // --- Filtering and Grouping Logic ---
+    // Add environment items
     let environmentsToDisplay = (this.environments || []).filter(env => env && env.url);
     const currentGroup = this.currentEnv ? this.currentEnv.group : null;
     
@@ -470,11 +453,10 @@ class FloatingWidget {
         environmentsToDisplay = environmentsToDisplay.filter(env => env.group === currentGroup);
     } 
 
-    // --- 3. Environment List Items ---
     if (environmentsToDisplay.length > 0) {
         environmentsToDisplay.forEach(env => {
-            const envItem = this.createEnvironmentItem(env, this.currentEnv);
-            menuContent.appendChild(envItem);
+            const item = this.createEnvironmentItem(env, this.currentEnv);
+            this.menu.appendChild(item);
         });
     } else {
         const noEnvMessage = document.createElement('div');
@@ -484,8 +466,11 @@ class FloatingWidget {
         } else {
              noEnvMessage.textContent = 'No environments available to switch to.';
         }
-        menuContent.appendChild(noEnvMessage);
+        this.menu.appendChild(noEnvMessage);
     }
+
+    // Update menu position after adding items
+    this.updateMenuPosition();
   }
   
   // RESTORED: createEnvironmentItem method (was present but might need context)
@@ -496,38 +481,29 @@ class FloatingWidget {
       item.setAttribute('aria-label', `Switch to ${env.name}`);
       item.tabIndex = 0; // Make focusable
 
+      const envType = getEnvironmentType(env);
+      const iconClass = `env-switcher-menu-item-icon ${envType}`;
+      
       const icon = document.createElement('span'); // Use span for icon
-      icon.className = 'env-switcher-menu-item-icon';
+      icon.className = iconClass;
       icon.setAttribute('aria-hidden', 'true'); // Hide decorative icon from screen readers
 
-      // Basic icon logic based on name (can be expanded)
-      if (env.name && env.name.toLowerCase().includes('staging')) {
-          icon.textContent = '🟡';
-      } else if (env.name && env.name.toLowerCase().includes('production')) {
-          icon.textContent = '🟢';
-      } else {
-          // Default icon or color logic (e.g., based on generateColor)
-          // For now, a generic dot or leave empty if no match
-          icon.textContent = '🔹'; // Default blue dot
-      }
-
       const name = document.createElement('div');
-      name.className = 'env-switcher-menu-item-name';
-      // Capitalize the first letter of the environment name
-      name.textContent = env.name ? env.name.charAt(0).toUpperCase() + env.name.slice(1) : '';
+      name.className = 'env-switcher-menu-item-name'; // Use a distinct class for name
+      name.textContent = env.name || ''; // Use env.name directly
 
       item.appendChild(icon);
       item.appendChild(name);
 
       // Add click listener
       item.addEventListener('click', () => {
-          this.switchToEnvironment(env);
+          this.switchToEnvironment(env.url);
       });
 
       // Add keyboard listener
       item.addEventListener('keydown', (e) => {
           if (e.key === 'Enter' || e.key === ' ') {
-              this.switchToEnvironment(env);
+              this.switchToEnvironment(env.url);
               e.preventDefault(); // Prevent space from scrolling
           }
       });
@@ -543,39 +519,48 @@ class FloatingWidget {
   }
 
   // Add try-catch around sendMessage in switchToEnvironment
-  switchToEnvironment(env) {
-    console.log('Switching to environment:', env.name, 'URL:', env.url);
-    if (env.url) {
-      try {
-        const currentUrl = window.location.href;
-        const currentUrlObj = new URL(currentUrl);
-        const path = currentUrlObj.pathname + currentUrlObj.search + currentUrlObj.hash;
-        const targetUrlObj = new URL(env.url);
-        targetUrlObj.pathname = path; 
-        const newUrl = targetUrlObj.toString();
-        
-        console.log('URL Construction:', { /* ... */ });
-        
-        if (this.openInNewTab) {
-          try {
-            chrome.runtime.sendMessage({
-              action: 'openNewTab',
-              url: newUrl
-            });
-            // Removed the callback function that was causing the error
-          } catch (error) {
-             console.error('Synchronous error calling sendMessage (rare):', error);
-             alert('Error trying to open in new tab: ' + error.message);
+  async switchToEnvironment(targetUrl) {
+    console.log(`Requesting switch to URL: ${targetUrl}`);
+    try {
+      // 1. Get the 'Open in New Tab' preference from storage
+      const storage = await chrome.storage.local.get(['openInNewTab']);
+      const openInNewTab = storage.openInNewTab || false;
+      console.log(`'Open in New Tab' state from storage: ${openInNewTab}`);
+
+      // 2. Construct the final URL (keeping the path)
+      const currentUrlObj = new URL(window.location.href);
+      const path = currentUrlObj.pathname + currentUrlObj.search + currentUrlObj.hash;
+      const targetUrlObj = new URL(targetUrl);
+      targetUrlObj.pathname = path;
+      targetUrlObj.search = ''; // Clear search/hash for consistency often
+      targetUrlObj.hash = '';
+      const finalUrl = targetUrlObj.toString();
+      console.log(`Final URL constructed: ${finalUrl}`);
+
+      // 3. Send message to background script to handle tab switching
+      chrome.runtime.sendMessage(
+        { 
+          action: 'switchTab', 
+          url: finalUrl, 
+          openInNewTab: openInNewTab 
+        },
+        (response) => {
+          if (chrome.runtime.lastError) {
+            console.error('Error sending switchTab message:', chrome.runtime.lastError.message);
+            alert('Could not communicate with the extension background.');
+          } else {
+            console.log('Background script response:', response);
           }
-        } else {
-          window.location.href = newUrl;
         }
-      } catch (error) {
-        console.error('Error constructing URL or switching environment:', error);
-        alert('Error switching environment: ' + error.message);
-      }
+      );
+      
+      // 4. Close the menu locally
+      this.closeMenu(); 
+
+    } catch (error) {
+      console.error('Error preparing environment switch:', error);
+      alert('Error constructing URL for switching: ' + error.message);
     }
-    this.toggleMenu(false); // Close menu after switch
   }
 
   // Modified setupEventListeners to include necessary listeners
