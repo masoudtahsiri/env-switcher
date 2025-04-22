@@ -48,6 +48,5 @@
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
   },
-  "author": "Refact, LLC",
-  "copyright": "Copyright © 2025 Refact, LLC. All rights reserved."
+  "author": "Refact, LLC"
 } 
