@@ -1,165 +1,244 @@
-.env-switcher-widget {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  z-index: 999999;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  cursor: move;
-  user-select: none;
-  transition: transform 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* Reset */
+.env-switcher-widget *,
+.env-switcher-menu *,
+.env-switcher-menu-item * {
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif !important;
+  line-height: normal !important;
+  text-align: left !important;
 }
 
+/* Widget */
+.env-switcher-widget {
+  position: fixed;
+  z-index: 2147483647;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  cursor: grab;
+  user-select: none;
+}
+
+/* Main button */
 .env-switcher-button {
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
-  background: #2563eb;
-  border: none;
-  color: white;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  background-color: #333333;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.2s, background-color 0.2s;
-  font-size: 20px;
+  box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+  border: none;
   padding: 0;
-  line-height: 1;
+  margin: 0;
   position: relative;
+  z-index: 1;
 }
 
 .env-switcher-button:hover {
+  background-color: #444444;
   transform: scale(1.05);
-  background: #1d4ed8;
 }
 
+.env-switcher-button:active {
+  transform: scale(0.95);
+}
+
+/* Refresh Icon inside the button */
+.env-switcher-icon {
+  width: 28px;
+  height: 28px;
+  fill: #ffffff;
+  display: block;
+  margin: auto;
+  padding: 0;
+  transform: translate(0, 0); /* Ensure no transform affects centering */
+  stroke: #ffffff; /* Add stroke for bolder appearance */
+  stroke-width: 1.5; /* Make the icon bolder */
+  stroke-linecap: round; /* Smooth stroke ends */
+  stroke-linejoin: round; /* Smooth stroke corners */
+}
+
+/* Close button */
 .env-switcher-close {
   position: absolute;
   top: -6px;
   right: -6px;
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
-  background: #ef4444;
+  background-color: #E53935;
   color: white;
-  border: 2px solid #ffffff;
-  cursor: pointer;
+  font-size: 10px;
+  font-weight: bold;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.2);
+  border: none;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+  z-index: 2;
   line-height: 1;
   padding: 0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: all 0.2s ease;
-  z-index: 1;
 }
 
 .env-switcher-close:hover {
-  background: #dc2626;
-  transform: scale(1.1);
+  background-color: #D32F2F;
+  transform: scale(1.05);
 }
 
+.env-switcher-close:active {
+  transform: scale(0.95);
+}
+
+/* NEW Menu Styles */
 .env-switcher-menu {
-  position: absolute;
-  background: #ffffff !important;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  padding: 8px 0;
-  min-width: 200px;
-  display: none;
-  bottom: 50px;
-  right: 0;
-  z-index: 2147483647;
-}
-
-/* Create a pseudo-element to ensure background coverage */
-.env-switcher-menu::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: #ffffff;
-  border-radius: 8px;
+  position: absolute; /* Keep positioning relative */
+  background-color: #ffffff !important; /* Override reset */
+  border-radius: 8px !important; /* Override reset */
+  border: 1px solid #cccccc !important; /* Override reset */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important; /* Override reset */
+  min-width: 250px !important; /* Override reset */
+  padding: 8px 0 !important; /* Apply padding here */
+  overflow: hidden !important; /* Override reset */
+  box-sizing: border-box !important; /* From reset */
+  width: 220px; /* Keep specific width if needed */
   z-index: -1;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.1s ease-out, visibility 0.1s ease-out;
 }
 
-.env-switcher-menu * {
-  /* Reset all inherited properties for menu items */
-  all: revert;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif !important;
-  background: none;
+.env-switcher-menu.visible {
+  opacity: 1;
+  visibility: visible;
+  z-index: 1;
 }
 
-.env-switcher-menu-item {
-  padding: 8px 16px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: #ffffff;
-  color: #1f2937;
-  transition: background-color 0.2s ease;
-  white-space: nowrap;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  font-size: 14px;
-  line-height: 1.5;
-  width: 100%;
-  box-sizing: border-box;
-  border: none;
-  margin: 0;
+/* Menu Positioning (Keep in case JS uses them) */
+.env-switcher-menu.position-top { bottom: 60px; top: auto; }
+.env-switcher-menu.position-bottom { top: 60px; bottom: auto; }
+.env-switcher-menu.position-left { right: auto; left: 0; }
+.env-switcher-menu.position-right { left: auto; right: 0; }
+
+/* NEW "Open in New Tab" row */
+.env-switcher-setting-item {
+  display: flex !important; /* Override reset */
+  align-items: center !important; /* Override reset */
+  padding: 8px 12px !important; /* Specific padding */
+  font-size: 14px !important; /* Override reset */
+  color: #666666 !important; /* Override reset */
+  cursor: pointer !important; /* Override reset */
+  background-color: transparent !important; /* Ensure no inherited background */
 }
 
-.env-switcher-menu-item:hover {
-  background-color: #f3f4f6 !important;
+/* NEW Checkbox */
+.env-switcher-setting-item input[type="checkbox"] {
+  width: 16px !important; /* Override reset */
+  height: 16px !important; /* Override reset */
+  margin-right: 8px !important; /* Override reset */
+  flex-shrink: 0 !important; /* Override reset */
+  margin-left: 0 !important; /* Ensure no extra left margin from reset */
+  margin-top: 0 !important; /* Ensure no extra top margin from reset */
+  margin-bottom: 0 !important; /* Ensure no extra bottom margin from reset */
+  padding: 0 !important; /* Ensure no extra padding from reset */
+  cursor: pointer !important; /* Ensure cursor */
 }
 
-.env-switcher-menu-item.active {
-  background-color: #e5e7eb !important;
-  color: #2563eb !important;
-  font-weight: 500;
+/* NEW Divider after "Open in New Tab" */
+.env-switcher-setting-item::after {
+  content: "" !important; /* Override reset */
+  display: block !important; /* Override reset */
+  height: 1px !important; /* Override reset */
+  background-color: #dddddd !important; /* Override reset */
+  margin-top: 8px !important; /* Override reset */
+  margin-left: 12px !important; /* Indent like padding */
+  margin-right: 12px !important; /* Indent like padding */
+  margin-bottom: 0 !important; /* Ensure no bottom margin */
 }
 
-.env-switcher-menu-item-icon {
-  width: 16px;
-  height: 16px;
-  min-width: 16px;
-  border-radius: 50%;
-  margin: 0;
+/* NEW Environment Item */
+.env-switcher-env-item {
+  display: flex !important; /* Override reset */
+  align-items: center !important; /* Override reset */
+  padding: 10px 12px !important; /* Specific padding */
+  font-size: 14px !important; /* Override reset */
+  color: #222222 !important; /* Override reset */
+  cursor: pointer !important; /* Override reset */
+  transition: background-color 0.2s ease !important; /* Override reset */
+  background-color: transparent !important; /* Ensure no inherited background */
+  font-weight: normal !important; /* Explicitly normal */
 }
 
-.env-switcher-menu.active {
-  display: block;
+/* NEW Environment Item Icon */
+.env-switcher-env-item .env-switcher-menu-item-icon {
+  display: flex !important; /* Override reset */
+  align-items: center !important; /* Override reset */
+  justify-content: center !important; /* Override reset */
+  width: 24px !important; /* Override reset */
+  height: 24px !important; /* Override reset */
+  font-size: 16px !important; /* Override reset */
+  margin-right: 8px !important; /* Override reset */
+  line-height: 1 !important; /* Add explicit line height */
+  flex-shrink: 0 !important; /* Ensure it doesn't shrink */
+  padding: 0 !important; /* Reset override */
+  margin-top: 0 !important; /* Reset override */
+  margin-bottom: 0 !important; /* Reset override */
+  margin-left: 0 !important; /* Reset override */
 }
 
-/* Position classes */
-.env-switcher-menu.position-top {
-  bottom: 60px;
-  top: auto;
-  right: 0;
-  left: auto;
+/* NEW Hover State */
+.env-switcher-env-item:hover {
+  background-color: #f5f5f5 !important; /* Override reset */
 }
 
-.env-switcher-menu.position-bottom {
-  top: 60px;
-  bottom: auto;
-  right: 0;
-  left: auto;
+/* NEW Active/Selected State */
+.env-switcher-env-item.active {
+  background-color: #e6f0ff !important; /* Override reset */
 }
 
-.env-switcher-menu.position-left {
-  right: 60px;
-  left: auto;
-  top: 0;
+/* Active environment text bold */
+.env-switcher-env-item.active .env-switcher-menu-item-name {
+  font-weight: bold !important; /* Override reset and normal weight */
 }
 
-.env-switcher-menu.position-right {
-  left: 60px;
-  right: auto;
-  top: 0;
-} 
+/* Environment Item Name (ensure reset doesn't interfere) */
+.env-switcher-menu-item-name {
+  font-weight: normal !important; /* Default weight */
+  font-size: 14px !important; /* From env-item */
+  color: #222222 !important; /* From env-item */
+  flex-grow: 1 !important; /* Override reset */
+  line-height: normal !important; /* Reset */
+  text-align: left !important; /* Reset */
+  padding: 0 !important; /* Reset */
+  margin: 0 !important; /* Reset */
+}
+
+/* No environments message (Keep basic style) */
+.env-switcher-menu-no-envs {
+  padding: 12px !important;
+  font-size: 13px !important;
+  color: #888888 !important;
+  text-align: center !important;
+  cursor: default !important;
+  line-height: normal !important;
+}
+
+/* REMOVE OLD/CONFLICTING RULES (Commented out for safety, can be deleted later) */
+/* .env-switcher-menu-content { ... } */
+/* .env-switcher-menu-item { ... } */
+/* .env-switcher-menu-item-icon { ... old rule ... } */
+/* .env-switcher-menu-group-header { ... } */
+/* .env-switcher-menu-group-header::after { ... } */
+/* .menu-item { ... } */
+/* .env-name { ... } */
+/* .env-url { ... } */
+/* .settings-section { ... } */
+/* .settings-item { ... } */
+/* Duplicate blocks from previous edits */
+/* Combined left/right padding rule */
+/* .env-switcher-menu-divider { ... } */ 

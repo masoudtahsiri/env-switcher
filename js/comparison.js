@@ -1,4 +1,4 @@
-class EnvironmentLoader {https://www.credaily.com  constructor() {
+class EnvironmentLoader {https://www.credaily.com  constructor() {image.png
     this.env1Frame = document.getElementById('env1-frame');
     this.env2Frame = document.getElementById('env2-frame');
     this.isLoading = false;
