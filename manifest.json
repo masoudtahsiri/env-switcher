@@ -1,13 +1,11 @@
 {
   "manifest_version": 3,
   "name": "Environment Switcher",
-  "version": "1.0",
-  "description": "Switch between different environments and compare them side by side",
+  "version": "1.0.0",
+  "description": "Quickly switch between different environments of your web applications",
   "permissions": [
-    "activeTab",
     "storage",
-    "scripting",
-    "webNavigation"
+    "tabs"
   ],
   "host_permissions": [
     "<all_urls>"
@@ -18,8 +16,8 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "css": ["content-scripts/floating-widget.css"],
-      "js": ["content-scripts/floating-widget.js"]
+      "js": ["content-scripts/floating-widget.js"],
+      "css": ["content-scripts/floating-widget.css"]
     }
   ],
   "action": {
@@ -49,5 +47,7 @@
   ],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
-  }
+  },
+  "author": "Refact, LLC",
+  "copyright": "Copyright © 2025 Refact, LLC. All rights reserved."
 } 
