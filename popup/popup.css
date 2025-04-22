@@ -452,11 +452,11 @@ input:checked + .slider:before {
   width: 100%;
   height: var(--input-height);
   padding: 0 12px;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
   font-size: 14px;
   background-color: white;
-  color: var(--text-color);
+  color: var(--text-primary);
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%236B7280'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
@@ -465,10 +465,18 @@ input:checked + .slider:before {
   cursor: pointer;
 }
 
+/* Group dropdown specific styling */
+#env-group {
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  border-radius: var(--radius-md);
+  background-color: #f9fafb;
+}
+
 .select-input:focus {
   outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(79, 143, 239, 0.1);
 }
 
 .group-actions {
