@@ -1,65 +1,114 @@
-# Env Switcher Chrome Extension
+# Environment Switcher Chrome Extension
 
-A Chrome extension that allows you to switch between different environments (e.g., staging, production) and compare them side by side.
+A Chrome extension that helps you quickly switch between different environments (development, staging, production) of your web applications.
 
 ## Features
 
-- **Environment Switching**: Easily switch between different environments while preserving the current path and query parameters
-- **Side-by-Side Comparison**: Compare two environments simultaneously to spot differences
-- **DOM Comparison**: Automatically detect and highlight differences in the DOM structure
-- **Modern UI**: Clean and intuitive interface with color-coded environments
-- **Customizable**: Add your own environments with custom names and colors
+- 🚀 Quick environment switching with a floating widget
+- 🎨 Modern, clean UI with customizable appearance
+- 🔄 Real-time URL comparison between environments
+- 📌 Save and manage multiple environments
+- 🎯 Smart environment detection
+- 🎭 Toggle widget visibility
+- 📱 Responsive design
 
 ## Installation
 
-1. Clone or download this repository
+1. Clone this repository:
+   ```bash
+   git clone https://github.com/masoudtahsiri/env-switcher.git
+   ```
+
 2. Open Chrome and navigate to `chrome://extensions/`
+
 3. Enable "Developer mode" in the top right corner
-4. Click "Load unpacked" and select the extension directory
+
+4. Click "Load unpacked" and select the cloned repository directory
 
 ## Usage
 
-### Environment Switching
-
-1. Click the extension icon in your Chrome toolbar
-2. Select the target environment from the dropdown
-3. Click "Switch" to navigate to the same page in the selected environment
-
 ### Adding Environments
 
-1. Click the extension icon
-2. Enter the environment details:
+1. Click the extension icon in your browser toolbar
+2. Click "Manage Environments"
+3. Fill in the environment details:
    - Name (e.g., "Production", "Staging")
-   - Base URL (e.g., "https://example.com")
-   - Color (optional)
-3. Click "Add Environment"
+   - URL (e.g., "https://example.com")
+   - Group (optional, for organizing environments)
+
+### Using the Floating Widget
+
+- The widget appears as a circular button in the bottom-right corner
+- Click to open the environment switcher menu
+- Select an environment to switch to it
+- Drag the widget to reposition it
+- Click the red close button to hide the widget
 
 ### Comparing Environments
 
 1. Click the extension icon
-2. Click the "Compare" button
-3. The comparison tool will open in a new tab
-4. Click "Compare" to analyze differences
-5. Click "Highlight Differences" to toggle the visual highlighting
-6. Click on any difference in the list to scroll to it
+2. Select two environments to compare
+3. Click "Compare" to see the differences
 
-## Default Environments
+## Configuration
 
-The extension comes with two default environments:
+### Widget Appearance
 
-- **Production**: https://credaily.com/
-- **Staging**: https://cre2stg.wpengine.com/
+The widget can be customized through the following CSS variables:
+
+```css
+--widget-bg-color: #333333;  /* Widget background color */
+--widget-hover-color: #444444;  /* Widget hover color */
+--icon-color: #ffffff;  /* Icon color */
+--close-button-color: #E53935;  /* Close button color */
+```
+
+### Environment Detection
+
+The extension automatically detects the current environment based on the URL. It matches:
+- Exact URL matches
+- Domain matches
+- Subdomain matches
 
 ## Development
 
-The extension is built using vanilla JavaScript and modern CSS. The main components are:
+### Project Structure
 
-- `popup/`: Contains the popup interface files
-- `comparison/`: Contains the comparison tool files
-- `css/`: Contains stylesheets
-- `js/`: Contains JavaScript modules
-- `icons/`: Contains extension icons
+```
+env-switcher/
+├── content-scripts/     # Content scripts for the floating widget
+├── popup/              # Popup interface
+│   ├── js/             # JavaScript files
+│   ├── css/            # CSS files
+│   └── html/           # HTML files
+├── background.js       # Background script
+└── manifest.json       # Extension manifest
+```
+
+### Building
+
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+2. Build the extension:
+   ```bash
+   npm run build
+   ```
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
-MIT License 
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Support
+
+If you encounter any issues or have questions, please [open an issue](https://github.com/masoudtahsiri/env-switcher/issues) on GitHub. 
