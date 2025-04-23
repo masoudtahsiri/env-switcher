@@ -1,157 +1,160 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Environment Comparison</title>
-  <style>
-    :root {
-      --primary: #4a90e2;
-      --text-primary: #333;
-      --text-secondary: #666;
-      --background: #f5f5f5;
-      --background-alt: #fff;
-      --border: #e0e0e0;
-      --radius: 8px;
-      --shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
+    <meta charset="UTF-8">
+    <title>Environment Comparison</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        }
+        
+        .comparison-container {
+            display: flex;
+            height: 100vh;
+            width: 100%;
+        }
+        
+        .env-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #e5e7eb;
+        }
 
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-      background: var(--background);
-      color: var(--text-primary);
-    }
+        .env-container:last-child {
+            border-right: none;
+        }
+        
+        .env-header {
+            padding: 1rem;
+            background-color: #f9fafb;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .env-header h2 {
+            margin: 0;
+            font-size: 1.25rem;
+            color: #111827;
+        }
+        
+        .env-type {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        .env-type.production {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+        
+        .env-type.staging {
+            background-color: #fef9c3;
+            color: #854d0e;
+        }
+        
+        .env-type.development {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
 
-    /* Prevent body scroll when locked */
-    body.scroll-locked {
-        /* overflow: hidden; /* Optional: Decide if you want this */
-    }
-
-    .header {
-      background: var(--background-alt);
-      padding: 16px;
-      box-shadow: var(--shadow);
-      position: sticky;
-      top: 0;
-      z-index: 100; /* High z-index */
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .header h1 { margin: 0; font-size: 20px; color: var(--text-primary); }
-    .controls { display: flex; gap: 1rem; align-items: center; }
-
-    .scroll-lock {
-      background: var(--background-alt); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 8px 12px; cursor: pointer;
-      display: flex; align-items: center; gap: 8px; color: var(--text-primary);
-      font-size: 14px; transition: all 0.2s ease;
-    }
-    .scroll-lock:hover { background: var(--background); border-color: var(--primary); }
-    .scroll-lock.active { background: var(--primary); border-color: var(--primary); color: white; }
-    .scroll-lock svg { width: 16px; height: 16px; fill: currentColor; }
-
-    .comparison-container {
-      display: flex;
-      height: calc(100vh - 70px); /* Adjust based on actual header height */
-      padding: 16px;
-      gap: 16px;
-    }
-
-    .env-container {
-      flex: 1; background: var(--background-alt); border-radius: var(--radius);
-      box-shadow: var(--shadow); /* overflow: hidden; /* Let content decide */
-      display: flex; flex-direction: column;
-    }
-
-    .env-label {
-      padding: 12px 16px; background: var(--background-alt); border-bottom: 1px solid var(--border);
-      font-weight: 500; display: flex; align-items: center; gap: 8px;
-    }
-    .env-label::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--primary); }
-
-    .env-frame-container {
-      flex: 1;
-      position: relative; /* Needed for absolute positioning of wrapper/loading */
-      /* overflow: hidden; /* REMOVED - Will be controlled by JS */
-    }
-
-    /* Default iframe style (Scroll Lock OFF) */
-    .env-frame {
-      width: 100%;
-      height: 100%;
-      border: none;
-      display: block;
-      overflow: auto; /* Default should allow scrolling */
-    }
-
-    /* Scroll Wrapper (Only exists when Scroll Lock ON) */
-    .scroll-wrapper {
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0; /* Cover container */
-      overflow-y: scroll;
-      z-index: 1; /* Below loading, above potential iframe background */
-      /* Hide scrollbar visually */
-      -ms-overflow-style: none;  /* IE and Edge */
-      scrollbar-width: none;  /* Firefox */
-    }
-    .scroll-wrapper::-webkit-scrollbar {
-      display: none; /* Chrome, Safari, Opera */
-    }
-
-    /* Iframe style when inside Scroll Wrapper (Scroll Lock ON) */
-    .scroll-wrapper > .env-frame {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 10000px; /* Large height */
-      overflow: hidden !important; /* Force hide internal scrollbar */
-      transform-origin: top left;
-    }
-
-    .loading {
-      position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex;
-      flex-direction: column; align-items: center; justify-content: center;
-      background: var(--background-alt); gap: 16px; z-index: 10; /* Above wrapper */
-    }
-    .spinner {
-      width: 40px; height: 40px; border: 4px solid var(--border);
-      border-top-color: var(--primary); border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .loading-text { color: var(--text-secondary); font-size: 14px; }
-
-  </style>
+        .env-type.qa {
+            background-color: #ffedd5;
+            color: #9a3412;
+        }
+        
+        .env-type.uat {
+            background-color: #f3e8ff;
+            color: #6b21a8;
+        }
+        
+        .env-type.custom {
+            background-color: #f3f4f6;
+            color: #374151;
+        }
+        
+        .env-frame-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .env-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        
+        .loading {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 1rem;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        .scroll-lock-button {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            padding: 0.5rem 1rem;
+            background-color: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            color: #374151;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            transition: all 0.2s;
+        }
+        
+        .scroll-lock-button:hover {
+            background-color: #f9fafb;
+        }
+        
+        .scroll-lock-button.active {
+            background-color: #4f46e5;
+            color: #ffffff;
+            border-color: #4f46e5;
+        }
+    </style>
 </head>
 <body>
-  <div class="header">
-    <h1>Environment Comparison</h1>
-    <div class="controls">
-      <button id="scroll-lock" class="scroll-lock" title="Toggle scroll synchronization">
-        <svg viewBox="0 0 24 24"><path d="M12 4c-4.41 0-8 3.59-8 8s3.59 8 8 8 8-3.59 8-8-3.59-8-8-8zm-1 12H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
-        <span>Scroll Lock</span>
-      </button>
+    <div class="comparison-container">
+        <div class="env-container">
+            <div class="env-header">
+                <h2 id="env1-name">Environment 1</h2>
+                <span id="env1-type" class="env-type">Unknown</span>
+            </div>
+            <div id="env1-loading" class="loading">Loading...</div>
+            <div class="env-frame-container">
+                <iframe id="env1-frame" name="env1" class="env-frame" sandbox="allow-same-origin allow-scripts allow-forms"></iframe>
+            </div>
+        </div>
+        
+        <div class="env-container">
+            <div class="env-header">
+                <h2 id="env2-name">Environment 2</h2>
+                <span id="env2-type" class="env-type">Unknown</span>
+            </div>
+            <div id="env2-loading" class="loading">Loading...</div>
+            <div class="env-frame-container">
+                <iframe id="env2-frame" name="env2" class="env-frame" sandbox="allow-same-origin allow-scripts allow-forms"></iframe>
+            </div>
+        </div>
     </div>
-  </div>
-  <div class="comparison-container">
-    <div class="env-container">
-      <div class="env-label"><span id="env1-label">Loading...</span></div>
-      <div class="env-frame-container">
-        <div class="loading" id="env1-loading"><div class="spinner"></div><div class="loading-text">Loading environment...</div></div>
-        <iframe id="env1-frame" class="env-frame" style="display:none;"></iframe> <!-- Placeholder -->
-      </div>
-    </div>
-    <div class="env-container">
-      <div class="env-label"><span id="env2-label">Loading...</span></div>
-      <div class="env-frame-container">
-        <div class="loading" id="env2-loading"><div class="spinner"></div><div class="loading-text">Loading environment...</div></div>
-        <iframe id="env2-frame" class="env-frame" style="display:none;"></iframe> <!-- Placeholder -->
-      </div>
-    </div>
-  </div>
-  <script src="js/comparison.js"></script>
+    <button id="scroll-lock" class="scroll-lock-button">Lock Scroll</button>
+    
+    <script src="comparison.js"></script>
 </body>
 </html> 
