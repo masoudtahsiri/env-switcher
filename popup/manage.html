@@ -1,104 +1,70 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8">
   <title>Manage Environments - Env Switcher</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
   <div class="popup">
-    <!-- Header Card -->
-    <div class="card header-card">
-      <div class="header-content">
-        <h1>Manage Environments</h1>
-        <a href="popup.html" class="back-link">&larr; Back to Switcher</a> 
-      </div>
+    <div class="header-row">
+      <h2 class="section-title">Manage Environments</h2>
+      <button class="back-button" id="back-to-main">← Back</button>
     </div>
-
-    <!-- Add Environment Form Card -->
-    <div class="card add-env-card">
-      <h2>Add New Environment</h2>
-      <form id="add-env-form">
+    
+    <div class="card">
+      <div class="section-header">Add New Environment</div>
+      <form id="envForm" class="env-form">
         <div class="form-group">
-          <label for="env-type">Environment Type</label>
-          <select id="env-type" class="select-input" required>
-            <option value="" disabled selected>Select environment type...</option>
+          <label for="envType">Environment Type</label>
+          <select id="envType" required>
+            <option value="">Select type...</option>
             <option value="production">Production</option>
             <option value="staging">Staging</option>
             <option value="development">Development</option>
             <option value="qa">QA</option>
             <option value="uat">UAT</option>
-            <option value="custom">Custom/Other</option>
+            <option value="custom">Custom</option>
           </select>
         </div>
+        
         <div class="form-group">
-          <label for="env-url">URL</label>
+          <label for="envUrl">Environment URL</label>
           <div class="url-input-group">
-            <input type="text" id="env-url" placeholder="https://example.com" required>
-            <button type="button" id="set-domain-btn" class="domain-button" title="Set domain from current page">
-              <!-- Updated info icon -->
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" width="18" height="18">
-                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-              </svg>
-            </button>
-          </div>
-        </div>
-        <div class="form-group">
-          <label for="env-group">Group</label>
-          <select id="env-group" class="select-input">
-            <option value="">Select a group</option>
-            <!-- Groups will be populated dynamically -->
-          </select>
-          <div class="group-actions">
-            <button type="button" id="add-group-btn" class="secondary-button">
+            <input type="url" id="envUrl" required>
+            <button type="button" id="setDomainBtn" class="button-action" title="Insert current URL">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
               </svg>
-              Add New Group
-            </button>
-            <button type="button" id="delete-group-btn" class="secondary-button" style="color: #FF9A9A; margin-left: 8px;" disabled>
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="#FF9A9A" width="16" height="16">
-                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
-              </svg>
-              Delete Group
             </button>
           </div>
         </div>
-        <button type="submit" class="primary-button">Add Environment</button>
+        
+        <div class="form-group">
+          <label for="envGroup">Group</label>
+          <select id="envGroup">
+            <option value="">Select a group...</option>
+          </select>
+          
+          <div class="group-buttons">
+            <button type="button" id="addGroupBtn" class="button-action">Add Group</button>
+            <button type="button" id="deleteGroupBtn" class="button-action">Delete Group</button>
+          </div>
+        </div>
+        
+        <button type="submit" class="button-action full-width">Add Environment</button>
       </form>
     </div>
 
-    <!-- Current Environments List Card -->
-    <div class="card current-envs-card">
-        <h2>Current Environments</h2>
-        <div class="env-list" id="env-list">
-          <!-- Environment list items (cards) will be populated here by JS -->
-          <!-- Example Item Structure (JS should generate this): -->
-          <!-- 
-          <div class="env-item">
-            <div class="env-info">
-              <div class="env-name">
-                <span class="env-dot"></span>
-                <span class="env-text">Production</span>
-                <span class="env-badge production">Production</span> 
-              </div>
-              <div class="env-url">https://example.com</div>
-            </div>
-            <div class="env-actions">
-              <button class="delete-btn" title="Delete Environment">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                   <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
-                </svg>
-              </button>
-            </div>
-          </div> 
-          -->
-        </div>
+    <div class="card">
+      <div class="section-header">Current Environments</div>
+      <div id="envList" class="env-list">
+        <!-- Environments will be populated here -->
       </div>
+    </div>
 
-      <div class="copyright">
-        Copyright &copy; 2025 Refact, LLC. All rights reserved.
-      </div>
-
+    <div class="copyright">
+      © 2024 Environment Switcher. All rights reserved.
     </div>
   </div>
   <script src="js/manage.js"></script>

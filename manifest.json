@@ -40,7 +40,10 @@
         "comparison/js/*",
         "comparison/css/*",
         "comparison/js/proxy.js",
-        "content-scripts/*"
+        "content-scripts/*",
+        "popup/manage.html",
+        "popup/js/*",
+        "popup/css/*"
       ],
       "matches": ["<all_urls>"]
     }

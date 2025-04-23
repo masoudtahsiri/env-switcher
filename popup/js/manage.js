@@ -23,6 +23,9 @@ class EnvironmentManager {
   }
 
   async initialize() {
+    // Wait for DOM to be ready
+    await this.waitForElements();
+    
     // Add global event listeners that should only be added once
     this.addGlobalEventListeners();
     
@@ -31,12 +34,31 @@ class EnvironmentManager {
     await this.updateGroupsList();
   }
 
-  async saveEnvironment() {
-    const type = document.getElementById('env-type').value.trim();
-    const url = document.getElementById('env-url').value.trim();
-    const group = document.getElementById('env-group').value.trim();
+  async waitForElements() {
+    return new Promise((resolve) => {
+      const checkElements = () => {
+        const form = document.getElementById('envForm');
+        const addGroupBtn = document.getElementById('addGroupBtn');
+        const envList = document.getElementById('envList');
+        const groupSelect = document.getElementById('envGroup');
+        
+        if (form && addGroupBtn && envList && groupSelect) {
+          resolve();
+        } else {
+          setTimeout(checkElements, 100);
+        }
+      };
+      
+      checkElements();
+    });
+  }
 
-    if (!type || !url) {
+  async saveEnvironment() {
+    const name = document.getElementById('envName').value.trim();
+    const url = document.getElementById('envUrl').value.trim();
+    const group = document.getElementById('envGroup').value.trim();
+
+    if (!name || !url) {
       alert('Please fill in all required fields');
       return;
     }
@@ -48,26 +70,15 @@ class EnvironmentManager {
       // Get existing environments
       const { environments = [] } = await chrome.storage.sync.get('environments');
 
-      // Create name based on type and URL
-      const urlObj = new URL(url);
-      let name = type.charAt(0).toUpperCase() + type.slice(1);
-      if (type === 'custom') {
-        // For custom type, use host as name
-        name = urlObj.hostname.replace(/^www\./, '');
-      }
-
       // Check if name already exists
-      let counter = 1;
-      let uniqueName = name;
-      while (environments.some(env => env.name === uniqueName)) {
-        uniqueName = `${name} ${counter}`;
-        counter++;
+      if (environments.some(env => env.name === name)) {
+        alert('An environment with this name already exists');
+        return;
       }
 
       // Add new environment
       environments.push({
-        name: uniqueName,
-        type,
+        name,
         url,
         group: group || null // Store group if provided
       });
@@ -80,9 +91,9 @@ class EnvironmentManager {
       await this.updateGroupsList();
       
       // Clear form
-      document.getElementById('env-type').value = '';
-      document.getElementById('env-url').value = '';
-      document.getElementById('env-group').value = '';
+      document.getElementById('envName').value = '';
+      document.getElementById('envUrl').value = '';
+      document.getElementById('envGroup').value = '';
 
       alert('Environment saved successfully!');
     } catch (error) {
@@ -93,7 +104,7 @@ class EnvironmentManager {
 
   async updateEnvironmentList() {
     const { environments = [] } = await chrome.storage.sync.get('environments');
-    const list = document.getElementById('env-list');
+    const list = document.getElementById('envList');
     
     if (!list) {
       console.error('Environment list element not found!');
@@ -124,7 +135,7 @@ class EnvironmentManager {
         item.className = 'env-item';
         
         // Get environment type class
-        const envType = env.type || this.getEnvironmentTypeFromName(env.name);
+        const envType = this.getEnvironmentTypeFromName(env.name);
         
         item.innerHTML = `
           <div class="env-info">
@@ -158,7 +169,12 @@ class EnvironmentManager {
 
   async updateGroupsList() {
     const { environments = [] } = await chrome.storage.sync.get('environments');
-    const groupSelect = document.getElementById('env-group');
+    const groupSelect = document.getElementById('envGroup');
+    
+    if (!groupSelect) {
+      console.error('Group select element not found!');
+      return;
+    }
     
     // Clear existing options except the first one
     while (groupSelect.options.length > 1) {
@@ -197,10 +213,6 @@ class EnvironmentManager {
       await this.updateEnvironmentList();
       await this.updateGroupsList();
       
-      // Disable delete button after deleting a group
-      const deleteGroupBtn = document.getElementById('delete-group-btn');
-      deleteGroupBtn.disabled = true;
-      
       alert('Group deleted successfully!');
     } catch (error) {
       alert('Error deleting group: ' + error.message);
@@ -218,32 +230,15 @@ class EnvironmentManager {
         
         const envName = button.dataset.name;
         const envUrl = button.dataset.url;
-        console.log('Editing environment:', envName, envUrl);
         
         const { environments = [] } = await chrome.storage.sync.get('environments');
-        console.log('All environments:', environments);
-        
-        // Make sure we're finding the exact match by name and url
         const env = environments.find(e => e.name === envName && e.url === envUrl);
-        console.log('Found environment for editing:', env);
         
         if (env) {
-          // Verify this is the correct environment
-          console.log(`Loading environment: Name: ${env.name}, Type: ${env.type || 'none'}, URL: ${env.url}, Group: ${env.group || 'No Group'}`);
-          
           // Populate form with environment data
-          const typeSelect = document.getElementById('env-type');
-          // If env has type property, use it, otherwise try to determine from name
-          const envType = env.type || this.getEnvironmentTypeFromName(env.name);
-          if (envType && typeSelect.querySelector(`option[value="${envType}"]`)) {
-            typeSelect.value = envType;
-          } else {
-            // If type doesn't match any option, select custom
-            typeSelect.value = 'custom';
-          }
-          
-          document.getElementById('env-url').value = env.url;
-          document.getElementById('env-group').value = env.group || '';
+          document.getElementById('envName').value = env.name;
+          document.getElementById('envUrl').value = env.url;
+          document.getElementById('envGroup').value = env.group || '';
           
           // Change button text to "Update"
           const submitButton = document.querySelector('button[type="submit"]');
@@ -252,9 +247,7 @@ class EnvironmentManager {
           submitButton.dataset.editingUrl = envUrl;
           
           // Scroll to the form
-          document.querySelector('.add-env-card').scrollIntoView({ behavior: 'smooth' });
-        } else {
-          console.error(`Could not find environment with name: ${envName} and url: ${envUrl}`);
+          document.querySelector('.card').scrollIntoView({ behavior: 'smooth' });
         }
       });
     });
@@ -268,7 +261,6 @@ class EnvironmentManager {
         
         const envName = button.dataset.name;
         const envUrl = button.dataset.url;
-        console.log('Deleting environment:', envName, envUrl);
         
         if (confirm(`Are you sure you want to delete the environment "${envName}"?`)) {
           try {
@@ -280,9 +272,9 @@ class EnvironmentManager {
             
             // If this was the last environment, clear the form
             if (updatedEnvs.length === 0) {
-              document.getElementById('env-type').value = '';
-              document.getElementById('env-url').value = '';
-              document.getElementById('env-group').value = '';
+              document.getElementById('envName').value = '';
+              document.getElementById('envUrl').value = '';
+              document.getElementById('envGroup').value = '';
               const submitButton = document.querySelector('button[type="submit"]');
               submitButton.textContent = 'Add Environment';
               delete submitButton.dataset.editing;
@@ -299,191 +291,207 @@ class EnvironmentManager {
 
   // Event listeners for static elements (added only once)
   addGlobalEventListeners() {
-    // Add event listener for form submission
-    document.getElementById('add-env-form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      
-      const type = document.getElementById('env-type').value.trim();
-      const url = document.getElementById('env-url').value.trim();
-      const group = document.getElementById('env-group').value.trim();
-      const submitButton = e.target.querySelector('button[type="submit"]');
-      const isEditing = submitButton.dataset.editing; // Original name of env being edited
-      const editingUrl = submitButton.dataset.editingUrl; // Original URL of env being edited
+    const form = document.getElementById('envForm');
+    const addGroupBtn = document.getElementById('addGroupBtn');
+    const setDomainBtn = document.getElementById('setDomainBtn');
+    const backButton = document.getElementById('back-to-main');
+    
+    if (backButton) {
+      backButton.addEventListener('click', () => {
+        // Simply navigate to popup.html
+        window.location.href = 'popup.html';
+      });
+    }
 
-      if (!type || !url) {
-        alert('Please fill in all required fields');
-        return;
-      }
+    if (form) {
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const type = document.getElementById('envType').value.trim();
+        const url = document.getElementById('envUrl').value.trim();
+        const group = document.getElementById('envGroup').value.trim();
+        const submitButton = e.target.querySelector('button[type="submit"]');
+        const isEditing = submitButton.dataset.editing; // Original name of env being edited
+        const editingUrl = submitButton.dataset.editingUrl; // Original URL of env being edited
 
-      try {
-        // Validate URL
-        new URL(url);
+        if (!type || !url) {
+          alert('Please fill in all required fields');
+          return;
+        }
 
-        // Get existing environments
-        const { environments = [] } = await chrome.storage.sync.get('environments');
+        try {
+          // Validate URL
+          new URL(url);
 
-        // Generate the base name using the helper function
-        const generatedName = generateBaseName(type, url);
+          // Get existing environments
+          const { environments = [] } = await chrome.storage.sync.get('environments');
 
-        if (isEditing) {
-          console.log('Updating environment originally named:', isEditing, 'at URL:', editingUrl);
-          // Find the environment using its original name and URL
-          const index = environments.findIndex(env => env.name === isEditing && env.url === editingUrl);
-          console.log('Found environment at index:', index, environments[index]);
-          
-          if (index !== -1) {
-            const oldEnvironment = environments[index];
+          // Generate the base name using the helper function
+          const generatedName = generateBaseName(type, url);
+
+          if (isEditing) {
+            // Find the environment using its original name and URL
+            const index = environments.findIndex(env => env.name === isEditing && env.url === editingUrl);
             
-            // Check if the NEW combination of type and URL already exists (excluding the one being edited)
-            if (environments.some((env, i) => i !== index && env.type === type && env.url === url)) {
-              alert('Another environment with this type and URL already exists.');
+            if (index !== -1) {
+              // Check if the NEW combination of type and URL already exists (excluding the one being edited)
+              if (environments.some((env, i) => i !== index && env.type === type && env.url === url)) {
+                alert('Another environment with this type and URL already exists.');
+                return;
+              }
+              
+              // Update the environment, using the newly generated name
+              environments[index] = {
+                name: generatedName, // Use the generated name directly
+                type,
+                url,
+                group: group || null
+              };
+              
+              // Save to storage
+              await chrome.storage.sync.set({ environments });
+
+              // Reset form
+              submitButton.textContent = 'Add Environment';
+              delete submitButton.dataset.editing;
+              delete submitButton.dataset.editingUrl;
+              document.getElementById('envType').value = '';
+              document.getElementById('envUrl').value = '';
+              document.getElementById('envGroup').value = '';
+
+              // Update UI
+              await this.updateEnvironmentList();
+              await this.updateGroupsList();
+
+              alert('Environment updated successfully!');
+            } else {
+              alert(`Error: Could not find environment "${isEditing}" to update`);
+            }
+          } else {
+            // Check if type and URL already exists when adding
+            if (environments.some(env => env.type === type && env.url === url)) {
+              alert('An environment with this type and URL already exists');
               return;
             }
-            
-            console.log('Updating from:', oldEnvironment);
-            console.log('Updating to:', { name: generatedName, type, url, group: group || null });
-            
-            // Update the environment, using the newly generated name
-            environments[index] = {
+
+            // Add new environment using the generated name directly
+            environments.push({
               name: generatedName, // Use the generated name directly
               type,
               url,
               group: group || null
-            };
+            });
             
             // Save to storage
             await chrome.storage.sync.set({ environments });
-            console.log('Updated environments saved:', environments);
 
             // Reset form
-            submitButton.textContent = 'Add Environment';
-            delete submitButton.dataset.editing;
-            delete submitButton.dataset.editingUrl;
-            document.getElementById('env-type').value = '';
-            document.getElementById('env-url').value = '';
-            document.getElementById('env-group').value = '';
+            document.getElementById('envType').value = '';
+            document.getElementById('envUrl').value = '';
+            document.getElementById('envGroup').value = '';
 
             // Update UI
             await this.updateEnvironmentList();
             await this.updateGroupsList();
 
-            alert('Environment updated successfully!');
-          } else {
-            console.error(`Environment with name "${isEditing}" and URL "${editingUrl}" not found for updating`);
-            alert(`Error: Could not find environment "${isEditing}" to update`);
+            alert('Environment added successfully!');
           }
-        } else {
-          // Check if type and URL already exists when adding
-          if (environments.some(env => env.type === type && env.url === url)) {
-            alert('An environment with this type and URL already exists');
+        } catch (error) {
+          console.error('Error saving environment:', error);
+          alert('Error saving environment: ' + error.message);
+        }
+      });
+    }
+    
+    if (addGroupBtn) {
+      addGroupBtn.addEventListener('click', async () => {
+        const groupName = prompt('Enter new group name:');
+        if (groupName && groupName.trim()) {
+          // Get existing environments to check for duplicate groups
+          const { environments = [] } = await chrome.storage.sync.get('environments');
+          const existingGroups = [...new Set(environments.map(env => env.group).filter(Boolean))];
+          
+          if (existingGroups.includes(groupName.trim())) {
+            alert('A group with this name already exists');
             return;
           }
-
-          // Add new environment using the generated name directly
-          environments.push({
-            name: generatedName, // Use the generated name directly
-            type,
-            url,
-            group: group || null
-          });
           
-          // Save to storage
-          await chrome.storage.sync.set({ environments });
-
-          // Reset form
-          document.getElementById('env-type').value = '';
-          document.getElementById('env-url').value = '';
-          document.getElementById('env-group').value = '';
-
-          // Update UI
-          await this.updateEnvironmentList();
-          await this.updateGroupsList();
-
-          alert('Environment added successfully!');
+          // Add the new group to the dropdown
+          const groupSelect = document.getElementById('envGroup');
+          const option = document.createElement('option');
+          option.value = groupName.trim();
+          option.textContent = groupName.trim();
+          groupSelect.appendChild(option);
+          
+          // Select the new group
+          groupSelect.value = groupName.trim();
+          
+          // Focus on the form
+          document.getElementById('envType').focus();
         }
-      } catch (error) {
-        console.error('Error saving environment:', error);
-        alert('Error saving environment: ' + error.message);
-      }
-    });
+      });
+    }
 
-    // Add event listener for group select change
-    const groupSelect = document.getElementById('env-group');
-    const deleteGroupBtn = document.getElementById('delete-group-btn');
-    
-    groupSelect.addEventListener('change', () => {
-      // Enable or disable delete button based on selection
-      if (groupSelect.value && groupSelect.value !== '') {
-        deleteGroupBtn.disabled = false;
-      } else {
-        deleteGroupBtn.disabled = true;
-      }
-    });
-    
+    if (setDomainBtn) {
+      setDomainBtn.addEventListener('click', async () => {
+        try {
+          const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+          if (tabs.length > 0) {
+            const currentUrl = tabs[0].url;
+            const urlField = document.getElementById('envUrl');
+            if (currentUrl && urlField) {
+              const urlObj = new URL(currentUrl);
+              urlField.value = urlObj.origin;
+            }
+          } else {
+            console.error('No active tab found.');
+            alert('Could not get URL from the current tab.');
+          }
+        } catch (error) {
+          console.error('Error fetching current URL:', error);
+          alert('Error fetching current URL. Make sure the tab is fully loaded.');
+        }
+      });
+    }
+
     // Add event listener for delete group button
-    deleteGroupBtn.addEventListener('click', async () => {
-      const selectedGroup = groupSelect.value;
-      
-      if (selectedGroup) {
-        await this.deleteGroup(selectedGroup);
-        groupSelect.value = ''; // Reset to default option
-        deleteGroupBtn.disabled = true;
-      }
-    });
-
-    // Add event listener for add group button
-    document.getElementById('add-group-btn').addEventListener('click', async () => {
-      const groupName = prompt('Enter new group name:');
-      if (groupName && groupName.trim()) {
-        // Get existing environments to check for duplicate groups
-        const { environments = [] } = await chrome.storage.sync.get('environments');
-        const existingGroups = [...new Set(environments.map(env => env.group).filter(Boolean))];
+    const deleteGroupBtn = document.getElementById('deleteGroupBtn');
+    if (deleteGroupBtn) {
+      deleteGroupBtn.addEventListener('click', () => {
+        const groupSelect = document.getElementById('envGroup');
+        const selectedGroup = groupSelect.value;
         
-        if (existingGroups.includes(groupName.trim())) {
-          alert('A group with this name already exists');
+        if (!selectedGroup) {
+          alert('Please select a group to delete');
           return;
         }
-        
-        // Add the new group to the dropdown
-        const option = document.createElement('option');
-        option.value = groupName.trim();
-        option.textContent = groupName.trim();
-        groupSelect.appendChild(option);
-        
-        // Select the new group
-        groupSelect.value = groupName.trim();
-        
-        // Enable delete button
-        deleteGroupBtn.disabled = false;
-        
-        // Focus on the form
-        document.getElementById('env-type').focus();
-      }
-    });
 
-    // Add event listener for the set domain button
-    document.getElementById('set-domain-btn').addEventListener('click', async () => {
-      try {
-        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-        if (tabs.length > 0) {
-          const currentUrl = tabs[0].url;
-          const urlField = document.getElementById('env-url');
-          if (currentUrl && urlField) {
-            const urlObj = new URL(currentUrl);
-            urlField.value = urlObj.origin;
-          }
-        } else {
-          console.error('No active tab found.');
-          alert('Could not get URL from the current tab.');
+        if (confirm(`Are you sure you want to delete the group "${selectedGroup}"?`)) {
+          chrome.storage.sync.get(['environments'], (result) => {
+            const environments = result.environments || [];
+            
+            // Remove group from environments
+            const updatedEnvironments = environments.map(env => {
+              if (env.group === selectedGroup) {
+                return { ...env, group: '' };
+              }
+              return env;
+            });
+
+            // Update storage
+            chrome.storage.sync.set({ environments: updatedEnvironments }, () => {
+              // Update the group select options
+              updateGroupSelect();
+              // Update the environment list
+              updateEnvironmentList();
+            });
+          });
         }
-      } catch (error) {
-        console.error('Error fetching current URL:', error);
-        alert('Error fetching current URL. Make sure the tab is fully loaded.');
-      }
-    });
+      });
+    }
   }
 
-  // Helper function to determine environment type from name (for backward compatibility)
+  // Helper function to determine environment type from name
   getEnvironmentTypeFromName(name) {
     if (!name) return 'custom';
     
