@@ -489,11 +489,12 @@ class Popup {
 }
 
 // Initialize popup
-new Popup();
+const popupInstance = new Popup();
 
 // Update the current environment section
 async function updateCurrentEnvironment() {
-  const currentEnv = await getCurrentEnvironment();
+  // Use the popup instance's getCurrentEnvironment method instead of a non-existent global function
+  const currentEnv = popupInstance.getCurrentEnvironment();
   if (currentEnv) {
     const envName = document.querySelector('.env-name');
     const envUrl = document.querySelector('.env-url');
