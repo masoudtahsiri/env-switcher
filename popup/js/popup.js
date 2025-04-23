@@ -272,6 +272,7 @@ class Popup {
     }
 
     try {
+      console.log('Switching to environment:', targetEnv);
       const openInNewTab = document.getElementById('openInNewTab')?.checked || false;
       
       // Extract the path from the current URL
@@ -282,19 +283,32 @@ class Popup {
       // Create a new URL object from the target environment URL
       const targetUrlObj = new URL(targetEnv.url);
       
-      // Set the path, search, and hash from the current URL
+      // Set the path from the current URL
       targetUrlObj.pathname = path;
       
       // Get the final URL string
-      const newUrl = targetUrlObj.toString();
+      const finalUrl = targetUrlObj.toString();
+      console.log('Final URL for environment switch:', finalUrl);
       
-      if (openInNewTab) {
-        // Open in new tab
-        await chrome.tabs.create({ url: newUrl });
-      } else {
-        // Update current tab
-        await chrome.tabs.update(this.currentTab.id, { url: newUrl });
-      }
+      // Send message to background script to handle the tab switch
+      chrome.runtime.sendMessage(
+        { 
+          action: 'switchTab', 
+          url: finalUrl, 
+          openInNewTab: openInNewTab 
+        },
+        (response) => {
+          if (chrome.runtime.lastError) {
+            console.error('Error sending switchTab message:', chrome.runtime.lastError.message);
+            alert('Could not communicate with the extension background.');
+          } else {
+            console.log('Background script response:', response);
+            if (response && response.success) {
+              console.log('Environment switch successful');
+            }
+          }
+        }
+      );
     } catch (error) {
       console.error('Error switching environment:', error);
       alert('Error switching environment: ' + error.message);
