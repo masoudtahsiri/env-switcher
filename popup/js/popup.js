@@ -30,6 +30,77 @@ class Popup {
     this.init();
   }
 
+  // Helper method to normalize groups for consistent comparison
+  normalizeGroup(group) {
+    return group ? group.toLowerCase().trim() : null;
+  }
+
+  // Helper method to get the current environment
+  getCurrentEnvironment() {
+    if (!this.currentTab || !this.currentTab.url) {
+      console.error('No current tab or URL available');
+      return null;
+    }
+    
+    const currentUrl = this.currentTab.url;
+    
+    try {
+      const currentUrlObj = new URL(currentUrl);
+      const currentHostname = currentUrlObj.hostname.replace(/^www\./, '');
+      
+      const currentEnv = this.environments.find(env => {
+        if (!env?.url) return false;
+        
+        try {
+          const envUrlObj = new URL(env.url);
+          const envHostname = envUrlObj.hostname.replace(/^www\./, '');
+          return currentHostname === envHostname;
+        } catch (e) {
+          console.error('Error parsing environment URL:', e);
+          return false;
+        }
+      });
+      
+      if (currentEnv) {
+        console.log('Found current environment:', {
+          name: currentEnv.name,
+          url: currentEnv.url,
+          group: currentEnv.group,
+          normalizedGroup: this.normalizeGroup(currentEnv.group)
+        });
+      } else {
+        console.warn('No matching environment found for URL:', currentUrl);
+      }
+      
+      return currentEnv;
+    } catch (e) {
+      console.error('Error identifying current environment:', e);
+      return null;
+    }
+  }
+
+  // Helper method to check if two environments are in the same group
+  areInSameGroup(env1, env2) {
+    if (!env1 || !env2) return false;
+    
+    const group1 = this.normalizeGroup(env1.group);
+    const group2 = this.normalizeGroup(env2.group);
+    
+    const result = group1 === group2;
+    
+    console.log('Group comparison:', {
+      env1Name: env1.name,
+      env1Group: env1.group,
+      normalizedGroup1: group1,
+      env2Name: env2.name,
+      env2Group: env2.group,
+      normalizedGroup2: group2,
+      sameGroup: result
+    });
+    
+    return result;
+  }
+
   async init() {
     try {
       // Get current tab
@@ -69,38 +140,9 @@ class Popup {
     defaultOption.selected = true;
     envSelect.appendChild(defaultOption);
 
-    // Get current environment and URL
-    const currentUrl = this.currentTab.url;
-    console.log('Current URL:', currentUrl);
-
-    // Get current environment
-    const currentEnv = this.environments.find(env => {
-      if (!env?.url) return false;
-      
-      try {
-        // Parse URLs
-        const currentUrlObj = new URL(currentUrl);
-        const envUrlObj = new URL(env.url);
-        
-        // Get hostnames without www
-        const currentHostname = currentUrlObj.hostname.replace(/^www\./, '');
-        const envHostname = envUrlObj.hostname.replace(/^www\./, '');
-        
-        console.log('Comparing hostnames:', {
-          current: currentHostname,
-          env: envHostname,
-          matches: currentHostname === envHostname
-        });
-        
-        return currentHostname === envHostname;
-      } catch (e) {
-        console.error('Error parsing URL:', e);
-        return false;
-      }
-    });
-
-    console.log('Current environment:', currentEnv);
-    console.log('All environments:', this.environments);
+    // Get current environment using our helper method
+    const currentEnv = this.getCurrentEnvironment();
+    console.log('Current environment for dropdown:', currentEnv);
 
     // If no current environment is found, don't show any environments in the dropdown
     if (!currentEnv) {
@@ -112,9 +154,8 @@ class Popup {
     this.updateCurrentEnvironmentDisplay(currentEnv);
 
     // Filter environments to only show those from the same group
-    const currentGroup = currentEnv.group ? currentEnv.group.toLowerCase() : null;
-    console.log('Current group (normalized):', currentGroup);
-
+    console.log('Filtering environments by group...');
+    
     const sameGroupEnvs = this.environments.filter(env => {
       // Skip if environment is invalid
       if (!env || !env.name) return false;
@@ -122,25 +163,10 @@ class Popup {
       // Skip the current environment itself
       if (env.name === currentEnv.name) return false;
       
-      // Group matching logic:
+      // Use our helper method to check if in same group
+      const inSameGroup = this.areInSameGroup(currentEnv, env);
       
-      // If current env has no group, only show other envs with no group
-      if (!currentGroup) {
-        return !env.group;
-      }
-      
-      // Otherwise show envs with the same group (case-insensitive)
-      const envGroup = env.group ? env.group.toLowerCase() : null;
-      const isInSameGroup = envGroup === currentGroup;
-      
-      console.log('Group comparison:', {
-        envName: env.name,
-        envGroup: envGroup,
-        currentGroup: currentGroup,
-        isInSameGroup
-      });
-      
-      return isInSameGroup;
+      return inSameGroup;
     });
 
     console.log('Same group environments to display:', sameGroupEnvs);
@@ -297,32 +323,18 @@ class Popup {
       return;
     }
 
-    // Get current environment for group check
-    const currentUrl = this.currentTab.url;
-    const currentEnv = this.environments.find(env => {
-      if (!env?.url) return false;
-      try {
-        const currentUrlObj = new URL(currentUrl);
-        const envUrlObj = new URL(env.url);
-        const currentHostname = currentUrlObj.hostname.replace(/^www\./, '');
-        const envHostname = envUrlObj.hostname.replace(/^www\./, '');
-        return currentHostname === envHostname;
-      } catch (e) {
-        console.error('Error parsing URL:', e);
-        return false;
-      }
-    });
+    // Get current environment using our helper method
+    const currentEnv = this.getCurrentEnvironment();
+    
+    if (!currentEnv) {
+      console.error('Could not determine current environment');
+      alert('Could not determine current environment');
+      return;
+    }
 
-    // Normalize group values for comparison - ensuring the same logic as in updateEnvironmentList
-    const currentGroup = currentEnv?.group ? currentEnv.group.toLowerCase() : null;
-    const targetGroup = targetEnv?.group ? targetEnv.group.toLowerCase() : null;
-
-    // Ensure environments are in the same group (using normalized values)
-    if (currentEnv && currentGroup !== targetGroup) {
-      console.error('Environment group mismatch:', {
-        currentGroup: currentGroup || 'ungrouped',
-        targetGroup: targetGroup || 'ungrouped'
-      });
+    // Use our helper method to check if environments are in the same group
+    if (!this.areInSameGroup(currentEnv, targetEnv)) {
+      console.error('Environment group mismatch detected in switchEnvironment');
       
       // This should not happen due to dropdown filtering, so log more debug info
       console.warn('This should not happen. Environment groups should be filtered in the dropdown.');
@@ -338,6 +350,7 @@ class Popup {
       const openInNewTab = document.getElementById('openInNewTab')?.checked || false;
       
       // Extract the path from the current URL
+      const currentUrl = this.currentTab.url;
       const currentUrlObj = new URL(currentUrl);
       const path = currentUrlObj.pathname + currentUrlObj.search + currentUrlObj.hash;
       
@@ -380,37 +393,8 @@ class Popup {
     console.log('Starting environment comparison...');
     console.log('Current tab URL:', this.currentTab.url);
 
-    // Get current environment
-    const currentEnv = this.environments.find(env => {
-      if (!env || !env.url) return false;
-      const currentUrl = this.currentTab.url;
-      const envUrl = env.url;
-      
-      try {
-        // Parse URLs
-        const currentUrlObj = new URL(currentUrl);
-        const envUrlObj = new URL(envUrl);
-        
-        // Get hostnames without www
-        const currentHostname = currentUrlObj.hostname.replace(/^www\./, '');
-        const envHostname = envUrlObj.hostname.replace(/^www\./, '');
-        
-        console.log('URL comparison:', {
-          currentUrl: currentUrl,
-          envUrl: envUrl,
-          currentHostname: currentHostname,
-          envHostname: envHostname,
-          matches: currentHostname === envHostname
-        });
-        
-        return currentHostname === envHostname;
-      } catch (e) {
-        console.error('Error parsing URL:', e);
-        return false;
-      }
-    });
-
-    console.log('Current environment details:', currentEnv);
+    // Get current environment using our helper method
+    const currentEnv = this.getCurrentEnvironment();
 
     if (!currentEnv || !currentEnv.url) {
       console.error('Invalid current environment:', currentEnv);
@@ -442,16 +426,9 @@ class Popup {
       return;
     }
 
-    // Normalize group values for comparison
-    const currentGroup = currentEnv?.group ? currentEnv.group.toLowerCase() : null;
-    const selectedGroup = selectedEnv?.group ? selectedEnv.group.toLowerCase() : null;
-
-    // Check if environments are in the same group using normalized values
-    if (currentGroup !== selectedGroup) {
-      console.error('Environment group mismatch:', {
-        currentGroup: currentGroup || 'ungrouped',
-        selectedGroup: selectedGroup || 'ungrouped'
-      });
+    // Use our helper method to check if environments are in the same group
+    if (!this.areInSameGroup(currentEnv, selectedEnv)) {
+      console.error('Environment group mismatch detected in compareEnvironments');
       
       // This should not happen due to dropdown filtering, so log more debug info
       console.warn('This should not happen. Environment groups should be filtered in the dropdown.');
