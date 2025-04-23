@@ -57,9 +57,17 @@ class Popup {
     if (!envSelect) return;
 
     // Clear existing options
-    while (envSelect.options.length > 1) {
-      envSelect.remove(1);
+    while (envSelect.options.length > 0) {
+      envSelect.remove(0);
     }
+
+    // Add default option
+    const defaultOption = document.createElement('option');
+    defaultOption.value = "";
+    defaultOption.textContent = "Select an environment...";
+    defaultOption.disabled = true;
+    defaultOption.selected = true;
+    envSelect.appendChild(defaultOption);
 
     // Get current environment and URL
     const currentUrl = this.currentTab.url;
@@ -100,42 +108,60 @@ class Popup {
       return;
     }
 
+    // Update current environment display
+    this.updateCurrentEnvironmentDisplay(currentEnv);
+
     // Filter environments to only show those from the same group
+    const currentGroup = currentEnv.group ? currentEnv.group.toLowerCase() : null;
+    console.log('Current group (normalized):', currentGroup);
+
     const sameGroupEnvs = this.environments.filter(env => {
-      // Skip if no group info
-      if (!env) return false;
+      // Skip if environment is invalid
+      if (!env || !env.name) return false;
+      
+      // Skip the current environment itself
+      if (env.name === currentEnv.name) return false;
+      
+      // Group matching logic:
       
       // If current env has no group, only show other envs with no group
-      if (!currentEnv.group) {
+      if (!currentGroup) {
         return !env.group;
       }
       
-      // Otherwise show envs with the same group
-      const isInSameGroup = env.group?.toLowerCase() === currentEnv.group?.toLowerCase();
+      // Otherwise show envs with the same group (case-insensitive)
+      const envGroup = env.group ? env.group.toLowerCase() : null;
+      const isInSameGroup = envGroup === currentGroup;
+      
       console.log('Group comparison:', {
         envName: env.name,
-        envGroup: env.group,
-        currentGroup: currentEnv.group,
+        envGroup: envGroup,
+        currentGroup: currentGroup,
         isInSameGroup
       });
       
       return isInSameGroup;
     });
 
-    console.log('Same group environments:', sameGroupEnvs);
+    console.log('Same group environments to display:', sameGroupEnvs);
 
     // Add environments to dropdown
-    sameGroupEnvs.forEach(env => {
-      if (env.name !== currentEnv.name) {
+    if (sameGroupEnvs.length === 0) {
+      console.log('No other environments in the same group found');
+      const noEnvOption = document.createElement('option');
+      noEnvOption.value = "";
+      noEnvOption.textContent = "No other environments in this group";
+      noEnvOption.disabled = true;
+      envSelect.appendChild(noEnvOption);
+    } else {
+      // Add environments to dropdown
+      sameGroupEnvs.forEach(env => {
         const option = document.createElement('option');
         option.value = env.name;
         option.textContent = env.name;
         envSelect.appendChild(option);
-      }
-    });
-
-    // Update current environment display
-    this.updateCurrentEnvironmentDisplay(currentEnv);
+      });
+    }
   }
 
   // Helper method to update the current environment display
