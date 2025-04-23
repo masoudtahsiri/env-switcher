@@ -271,12 +271,37 @@ class Popup {
       return;
     }
 
+    // Get current environment for group check
+    const currentUrl = this.currentTab.url;
+    const currentEnv = this.environments.find(env => {
+      if (!env?.url) return false;
+      try {
+        const currentUrlObj = new URL(currentUrl);
+        const envUrlObj = new URL(env.url);
+        const currentHostname = currentUrlObj.hostname.replace(/^www\./, '');
+        const envHostname = envUrlObj.hostname.replace(/^www\./, '');
+        return currentHostname === envHostname;
+      } catch (e) {
+        console.error('Error parsing URL:', e);
+        return false;
+      }
+    });
+
+    // Ensure environments are in the same group
+    if (currentEnv && currentEnv.group !== targetEnv.group) {
+      console.error('Environment group mismatch:', {
+        currentGroup: currentEnv.group || 'Ungrouped',
+        targetGroup: targetEnv.group || 'Ungrouped'
+      });
+      alert('Can only switch between environments in the same group');
+      return;
+    }
+
     try {
       console.log('Switching to environment:', targetEnv);
       const openInNewTab = document.getElementById('openInNewTab')?.checked || false;
       
       // Extract the path from the current URL
-      const currentUrl = this.currentTab.url;
       const currentUrlObj = new URL(currentUrl);
       const path = currentUrlObj.pathname + currentUrlObj.search + currentUrlObj.hash;
       
