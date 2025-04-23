@@ -313,12 +313,22 @@ class Popup {
       }
     });
 
-    // Ensure environments are in the same group
-    if (currentEnv && currentEnv.group !== targetEnv.group) {
+    // Normalize group values for comparison - ensuring the same logic as in updateEnvironmentList
+    const currentGroup = currentEnv?.group ? currentEnv.group.toLowerCase() : null;
+    const targetGroup = targetEnv?.group ? targetEnv.group.toLowerCase() : null;
+
+    // Ensure environments are in the same group (using normalized values)
+    if (currentEnv && currentGroup !== targetGroup) {
       console.error('Environment group mismatch:', {
-        currentGroup: currentEnv.group || 'Ungrouped',
-        targetGroup: targetEnv.group || 'Ungrouped'
+        currentGroup: currentGroup || 'ungrouped',
+        targetGroup: targetGroup || 'ungrouped'
       });
+      
+      // This should not happen due to dropdown filtering, so log more debug info
+      console.warn('This should not happen. Environment groups should be filtered in the dropdown.');
+      console.warn('Available dropdown options:', Array.from(envSelect.options).map(o => o.value));
+      console.warn('All environments:', this.environments);
+      
       alert('Can only switch between environments in the same group');
       return;
     }
