@@ -442,12 +442,21 @@ class Popup {
       return;
     }
 
-    // Check if environments are in the same group
-    if (currentEnv.group !== selectedEnv.group) {
+    // Normalize group values for comparison
+    const currentGroup = currentEnv?.group ? currentEnv.group.toLowerCase() : null;
+    const selectedGroup = selectedEnv?.group ? selectedEnv.group.toLowerCase() : null;
+
+    // Check if environments are in the same group using normalized values
+    if (currentGroup !== selectedGroup) {
       console.error('Environment group mismatch:', {
-        currentGroup: currentEnv.group,
-        selectedGroup: selectedEnv.group
+        currentGroup: currentGroup || 'ungrouped',
+        selectedGroup: selectedGroup || 'ungrouped'
       });
+      
+      // This should not happen due to dropdown filtering, so log more debug info
+      console.warn('This should not happen. Environment groups should be filtered in the dropdown.');
+      console.warn('Available dropdown options:', Array.from(envSelect.options).map(o => o.value));
+      
       alert('Can only compare environments in the same group');
       return;
     }
