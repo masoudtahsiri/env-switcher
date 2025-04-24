@@ -64,6 +64,7 @@ class EnvironmentLoader {
       if (frame.parentNode?.id === `${envId}-scroll-wrapper`) {
         console.log(`Wrapper already exists for ${envId}, ensuring scrollable.`);
         frame.parentNode.style.overflowY = 'scroll';
+        frame.parentNode.style.overflowX = 'hidden'; // Prevent horizontal scrollbars
         container.style.overflow = 'hidden'; // Ensure container clips
         // Re-attach listener if needed
         if (!this.scrollListeners[envId]) {
@@ -78,7 +79,8 @@ class EnvironmentLoader {
       const wrapper = document.createElement('div');
       wrapper.id = `${envId}-scroll-wrapper`;
       wrapper.className = 'scroll-wrapper';
-      wrapper.style.overflowY = 'scroll'; // Make wrapper scrollable
+      wrapper.style.overflowY = 'scroll'; // Make wrapper scrollable vertically
+      wrapper.style.overflowX = 'hidden'; // Hide horizontal scrollbar
       wrapper.style.width = '100%';
       wrapper.style.height = '100%';
       wrapper.style.position = 'relative';
@@ -93,7 +95,7 @@ class EnvironmentLoader {
       frame.style.left = '0';
       frame.style.width = '100%';
       frame.style.height = '10000px'; // Large height to ensure scrollability
-      frame.style.overflow = 'hidden';
+      frame.style.overflow = 'hidden'; // Prevent iframe scrollbars
       frame.style.transform = `translateY(-${wrapper.scrollTop}px)`;
 
       // 4. Style the container to clip the transformed iframe
@@ -121,6 +123,10 @@ class EnvironmentLoader {
       console.error("Could not find frames for fallback scroll sync");
       return;
     }
+    
+    // Make sure parent document doesn't scroll
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
     
     // Use main window's wheel events to control iframe scrolling
     const handleWheelEvent = (e) => {
@@ -208,6 +214,10 @@ class EnvironmentLoader {
       console.log("Removed fallback wheel listener");
     }
 
+    // Keep the page from scrolling even when sync is disabled
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+
     ['env1', 'env2'].forEach(envId => {
       const wrapper = document.getElementById(`${envId}-scroll-wrapper`);
       const frame = this.iframes[envId];
@@ -237,8 +247,8 @@ class EnvironmentLoader {
         frame.style.left = '';
         frame.style.width = '';
 
-        // 5. Reset container overflow
-        container.style.overflow = '';
+        // 5. Reset container overflow - keep hidden to prevent document scrollbars
+        container.style.overflow = 'hidden';
       }
     });
   }

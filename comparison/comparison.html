@@ -4,9 +4,12 @@
     <meta charset="UTF-8">
     <title>Environment Comparison</title>
     <style>
-        body {
+        html, body {
             margin: 0;
             padding: 0;
+            overflow: hidden; /* Prevent document scrollbars */
+            height: 100%;
+            width: 100%;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
         }
         
@@ -14,6 +17,7 @@
             display: flex;
             height: 100vh;
             width: 100%;
+            overflow: hidden; /* Prevent container scrollbars */
         }
         
         .env-container {
@@ -21,6 +25,7 @@
             display: flex;
             flex-direction: column;
             border-right: 1px solid #e5e7eb;
+            overflow: hidden; /* Prevent container scrollbars */
         }
 
         .env-container:last-child {
@@ -82,13 +87,22 @@
         .env-frame-container {
             flex: 1;
             position: relative;
-            overflow: hidden;
+            overflow: hidden; /* Ensure container doesn't scroll */
         }
         
         .env-frame {
             width: 100%;
             height: 100%;
             border: none;
+        }
+        
+        /* Scroll wrapper styles to contain scrollbars within the frames */
+        .scroll-wrapper {
+            overflow-y: auto;
+            overflow-x: hidden;
+            width: 100%;
+            height: 100%;
+            position: relative;
         }
         
         .loading {
@@ -116,6 +130,7 @@
             color: #374151;
             box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
             transition: all 0.2s;
+            z-index: 1000;
         }
         
         .scroll-lock-button:hover {
