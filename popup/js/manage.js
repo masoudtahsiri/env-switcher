@@ -457,7 +457,7 @@ class EnvironmentManager {
     // Add event listener for delete group button
     const deleteGroupBtn = document.getElementById('deleteGroupBtn');
     if (deleteGroupBtn) {
-      deleteGroupBtn.addEventListener('click', () => {
+      deleteGroupBtn.addEventListener('click', async () => {
         const groupSelect = document.getElementById('envGroup');
         const selectedGroup = groupSelect.value;
         
@@ -467,25 +467,29 @@ class EnvironmentManager {
         }
 
         if (confirm(`Are you sure you want to delete the group "${selectedGroup}"?`)) {
-          chrome.storage.sync.get(['environments'], (result) => {
-            const environments = result.environments || [];
+          try {
+            const { environments = [] } = await chrome.storage.sync.get('environments');
             
             // Remove group from environments
             const updatedEnvironments = environments.map(env => {
               if (env.group === selectedGroup) {
-                return { ...env, group: '' };
+                return { ...env, group: null };
               }
               return env;
             });
 
             // Update storage
-            chrome.storage.sync.set({ environments: updatedEnvironments }, () => {
-              // Update the group select options
-              updateGroupSelect();
-              // Update the environment list
-              updateEnvironmentList();
-            });
-          });
+            await chrome.storage.sync.set({ environments: updatedEnvironments });
+            
+            // Update UI using class methods
+            await this.updateEnvironmentList();
+            await this.updateGroupsList();
+            
+            alert('Group deleted successfully!');
+          } catch (error) {
+            console.error('Error deleting group:', error);
+            alert('Error deleting group: ' + error.message);
+          }
         }
       });
     }
