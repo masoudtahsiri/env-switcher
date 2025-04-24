@@ -403,70 +403,93 @@ class FloatingWidget {
 
   // Add try-catch around openInNewTab storage access in updateMenu's listener
   updateMenu() {
-    this.menu.innerHTML = ''; // Clear existing items
+    if (!this.menu) return;
 
-    // "Open in New Tab" checkbox
-    const newTabOption = document.createElement('div');
-    newTabOption.className = 'env-switcher-setting-item';
-    newTabOption.innerHTML = `
-      <label class="checkbox-label">
-        <input type="checkbox" id="widget-open-new-tab">
-        <span>Open in New Tab</span>
-      </label>
-    `;
-    this.menu.appendChild(newTabOption);
-    // Persist checkbox state
-    const newTabCheckbox = newTabOption.querySelector('#widget-open-new-tab');
-    chrome.storage.local.get(['openInNewTab'], (result) => {
-      newTabCheckbox.checked = result.openInNewTab || false;
-    });
-    newTabCheckbox.addEventListener('change', (event) => {
-      chrome.storage.local.set({ openInNewTab: event.target.checked });
-    });
+    const menuContent = this.menu.querySelector('.env-switcher-menu-content');
+    if (!menuContent) return;
 
-    // Add a divider
+    // Clear existing content
+    menuContent.innerHTML = '';
+
+    // Add "Open in New Tab" toggle
+    const toggleWrapper = document.createElement('div');
+    toggleWrapper.className = 'toggle-wrapper';
+    
+    const toggleInput = document.createElement('input');
+    toggleInput.type = 'checkbox';
+    toggleInput.id = 'openInNewTab';
+    toggleInput.className = 'toggle-input';
+    toggleInput.checked = this.openInNewTab;
+    
+    const toggleSlider = document.createElement('span');
+    toggleSlider.className = 'toggle-slider';
+    
+    const toggleLabel = document.createElement('span');
+    toggleLabel.className = 'toggle-label';
+    toggleLabel.textContent = 'Open in new tab';
+    
+    // Add event listener for toggle
+    toggleWrapper.addEventListener('click', async (e) => {
+      // Toggle the checkbox state
+      toggleInput.checked = !toggleInput.checked;
+      this.openInNewTab = toggleInput.checked;
+      
+      try {
+        await chrome.storage.sync.set({ openInNewTab: this.openInNewTab });
+        console.log('Open in new tab preference saved:', this.openInNewTab);
+      } catch (error) {
+        console.error('Error saving openInNewTab preference:', error);
+      }
+    });
+    
+    toggleWrapper.appendChild(toggleInput);
+    toggleWrapper.appendChild(toggleSlider);
+    toggleWrapper.appendChild(toggleLabel);
+    
+    menuContent.appendChild(toggleWrapper);
+
+    // Add divider
     const divider = document.createElement('hr');
-    divider.className = 'env-switcher-menu-divider';
-    this.menu.appendChild(divider);
+    divider.className = 'env-divider';
+    menuContent.appendChild(divider);
 
-    // Add environment items
+    // Filter environments
     let environmentsToDisplay = (this.environments || []).filter(env => env && env.url);
     const currentGroup = this.currentEnv ? this.currentEnv.group : null;
     
     // Exclude the current environment itself
     if (this.currentEnv) {
-        environmentsToDisplay = environmentsToDisplay.filter(env => {
-            // Robust check for URL equality
-             try {
-                const currentOrigin = new URL(this.currentEnv.url).origin;
-                const envOrigin = new URL(env.url).origin;
-                return currentOrigin !== envOrigin;
-            } catch (e) {
-                // Fallback to string comparison if URL parsing fails
-                return env.url !== this.currentEnv.url;
-            }
-        });
+      environmentsToDisplay = environmentsToDisplay.filter(env => {
+        try {
+          const currentOrigin = new URL(this.currentEnv.url).origin;
+          const envOrigin = new URL(env.url).origin;
+          return currentOrigin !== envOrigin;
+        } catch (e) {
+          return env.url !== this.currentEnv.url;
+        }
+      });
     }
 
     // Filter by the current environment's group if it exists
     if (currentGroup) {
-        environmentsToDisplay = environmentsToDisplay.filter(env => env.group === currentGroup);
-    } 
+      environmentsToDisplay = environmentsToDisplay.filter(env => env.group === currentGroup);
+    }
 
+    // Add environments to menu
     if (environmentsToDisplay.length > 0) {
-        environmentsToDisplay.forEach(env => {
-            const item = this.createEnvironmentItem(env, this.currentEnv);
-            this.menu.appendChild(item);
-        });
+      environmentsToDisplay.forEach(env => {
+        const envItem = this.createEnvironmentItem(env, this.currentEnv);
+        menuContent.appendChild(envItem);
+      });
     } else {
-        const noEnvMessage = document.createElement('div');
-        noEnvMessage.className = 'env-switcher-menu-no-envs';
-        if (currentGroup) {
-            noEnvMessage.textContent = 'No other environments in this group.';
-        } else {
-             noEnvMessage.textContent = 'No environments available to switch to.';
-        }
-        this.menu.appendChild(noEnvMessage);
+      const noEnvs = document.createElement('div');
+      noEnvs.className = 'env-switcher-menu-no-envs';
+      if (currentGroup) {
+        noEnvs.textContent = 'No other environments in this group';
+      } else {
+        noEnvs.textContent = 'No environments available to switch to';
+      }
+      menuContent.appendChild(noEnvs);
     }
 
     // Update menu position after adding items
@@ -522,10 +545,9 @@ class FloatingWidget {
   async switchToEnvironment(targetUrl) {
     console.log(`Requesting switch to URL: ${targetUrl}`);
     try {
-      // 1. Get the 'Open in New Tab' preference from storage
-      const storage = await chrome.storage.local.get(['openInNewTab']);
-      const openInNewTab = storage.openInNewTab || false;
-      console.log(`'Open in New Tab' state from storage: ${openInNewTab}`);
+      // Use the instance property instead of reading from storage
+      const openInNewTab = this.openInNewTab;
+      console.log(`'Open in New Tab' state: ${openInNewTab}`);
 
       // 2. Construct the final URL (keeping the path)
       const currentUrlObj = new URL(window.location.href);

@@ -54,12 +54,10 @@ class Popup {
   // Helper method to get the current environment
   getCurrentEnvironment() {
     if (!this.currentTab || !this.currentTab.url) {
-      console.error('No current tab or URL available');
       return null;
     }
     
     const currentUrl = this.currentTab.url;
-    console.log('Matching environment for URL:', currentUrl);
     
     try {
       const currentUrlObj = new URL(currentUrl);
@@ -79,25 +77,13 @@ class Popup {
           return currentHostname === envHostname || 
                  currentUrlLower.startsWith(envUrlLower.endsWith('/') ? envUrlLower : envUrlLower + '/');
         } catch (e) {
-          console.warn(`Could not parse URL for comparison: ${env.url}`, e);
           // Fallback to simple string comparison if URL parsing fails
           return currentUrl.toLowerCase().startsWith(env.url.toLowerCase());
         }
       });
       
-      if (currentEnv) {
-        console.log('Found current environment:', {
-          name: currentEnv.name,
-          url: currentEnv.url,
-          group: currentEnv.group
-        });
-      } else {
-        console.warn('No matching environment found for URL:', currentUrl);
-      }
-      
       return currentEnv;
     } catch (e) {
-      console.error('Error identifying current environment:', e);
       return null;
     }
   }
@@ -106,29 +92,11 @@ class Popup {
   areInSameGroup(env1, env2) {
     // If either environment is missing, return false
     if (!env1 || !env2) {
-      console.log('areInSameGroup: One or both environments are missing', { env1, env2 });
       return false;
     }
 
-    // Log the raw environment data
-    console.log('areInSameGroup check:', {
-      env1: { 
-        name: env1.name, 
-        group: env1.group,
-        hasGroup: Boolean(env1.group),
-        groupType: typeof env1.group
-      },
-      env2: { 
-        name: env2.name, 
-        group: env2.group,
-        hasGroup: Boolean(env2.group),
-        groupType: typeof env2.group
-      }
-    });
-
     // Handle case where both environments have no group property at all
     if (!('group' in env1) && !('group' in env2)) {
-      console.log('areInSameGroup: Both environments have no group property');
       return true;
     }
 
@@ -136,34 +104,18 @@ class Popup {
     const group1 = this.normalizeGroup(env1.group);
     const group2 = this.normalizeGroup(env2.group);
 
-    console.log('Normalized groups:', {
-      env1: { name: env1.name, originalGroup: env1.group, normalizedGroup: group1 },
-      env2: { name: env2.name, originalGroup: env2.group, normalizedGroup: group2 }
-    });
-
     // If both environments have no group (normalized to null), consider them in the same group
     if (group1 === null && group2 === null) {
-      console.log('areInSameGroup: Both environments are ungrouped');
       return true;
     }
 
     // If only one environment has a group, they're not in the same group
     if ((group1 === null && group2 !== null) || (group1 !== null && group2 === null)) {
-      console.log('areInSameGroup: One environment is grouped, the other is not');
       return false;
     }
 
     // Compare the normalized groups
-    const sameGroup = group1 === group2;
-    console.log('areInSameGroup final result:', { 
-      sameGroup,
-      group1,
-      group2,
-      env1Name: env1.name,
-      env2Name: env2.name
-    });
-    
-    return sameGroup;
+    return group1 === group2;
   }
 
   async init() {
@@ -199,11 +151,9 @@ class Popup {
 
     // Get current environment using our helper method
     const currentEnv = this.getCurrentEnvironment();
-    console.log('Current environment for dropdown:', JSON.stringify(currentEnv, null, 2));
 
     // If no current environment is found, show a message and disable the switch button
     if (!currentEnv) {
-      console.warn('No current environment found');
       this.updateCurrentEnvironmentDisplay(null);
       
       // Add message option
@@ -234,20 +184,6 @@ class Popup {
 
     // Get the current environment's group
     const currentGroup = this.normalizeGroup(currentEnv.group);
-    console.log('Current environment group:', {
-      name: currentEnv.name,
-      group: currentEnv.group,
-      normalizedGroup: currentGroup,
-      url: currentEnv.url
-    });
-
-    // Log all available environments
-    console.log('All available environments:', this.environments.map(env => ({
-      name: env.name,
-      group: env.group,
-      normalizedGroup: this.normalizeGroup(env.group),
-      url: env.url
-    })));
 
     // Add default option
     const defaultOption = document.createElement('option');
@@ -261,27 +197,17 @@ class Popup {
     const sameGroupEnvs = this.environments.filter(env => {
       // Skip if environment is invalid
       if (!env || !env.name) {
-        console.log('Skipping invalid environment:', env);
         return false;
       }
 
       // Skip the current environment itself
       if (env.name === currentEnv.name) {
-        console.log('Skipping current environment:', env.name);
         return false;
       }
 
       // Check if environment is in the same group
       const envGroup = this.normalizeGroup(env.group);
-      const isSameGroup = currentGroup === envGroup;
-      
-      console.log('Group comparison:', {
-        current: { name: currentEnv.name, group: currentGroup, url: currentEnv.url },
-        target: { name: env.name, group: envGroup, url: env.url },
-        isSameGroup
-      });
-
-      return isSameGroup;
+      return currentGroup === envGroup;
     });
 
     // Then, filter out environments with the same origin
@@ -289,29 +215,11 @@ class Popup {
       try {
         const currentOrigin = new URL(currentEnv.url).origin;
         const envOrigin = new URL(env.url).origin;
-        const isSameOrigin = currentOrigin === envOrigin;
-        
-        if (isSameOrigin) {
-          console.log('Skipping environment with same origin:', {
-            name: env.name,
-            url: env.url,
-            origin: envOrigin
-          });
-        }
-        
-        return !isSameOrigin;
+        return currentOrigin !== envOrigin;
       } catch (e) {
-        console.warn('Error comparing URLs:', e);
         return false;
       }
     });
-
-    console.log('Filtered environments:', filteredEnvs.map(env => ({
-      name: env.name,
-      group: env.group,
-      normalizedGroup: this.normalizeGroup(env.group),
-      url: env.url
-    })));
 
     // Add environments to dropdown
     if (filteredEnvs.length === 0) {
@@ -326,19 +234,10 @@ class Popup {
         option.value = env.name;
         option.textContent = env.name;
         option.dataset.group = env.group || 'null';
-        option.dataset.url = env.url; // Add URL to dataset for debugging
+        option.dataset.url = env.url;
         envSelect.appendChild(option);
       });
     }
-
-    // Log final dropdown state
-    console.log('Final dropdown options:', Array.from(envSelect.options).map(opt => ({
-      value: opt.value,
-      text: opt.textContent,
-      group: opt.dataset.group,
-      url: opt.dataset.url,
-      disabled: opt.disabled
-    })));
   }
 
   // Helper method to update the current environment display

@@ -103,9 +103,9 @@
   background-color: #ffffff;
   border-radius: 8px;
   border: 1px solid #cccccc;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   min-width: 200px;
-  padding: 8px 12px; /* Padding: 8px top/bottom, 12px left/right */
+  padding: 16px 16px 16px 16px; /* Increased padding all around */
   overflow: hidden;
   box-sizing: border-box;
   width: 220px;
@@ -117,12 +117,22 @@
   font-size: 14px;
   line-height: normal;
   text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .env-switcher-menu.visible {
   opacity: 1;
   visibility: visible;
   z-index: 10;
+}
+
+.env-switcher-menu-content {
+  display: flex;
+  flex-direction: column;
+  gap: 3px; /* Reduced gap from 8px to 3px */
+  padding: 10px 6px 6px 12px; /* More top and left padding (top, right, bottom, left) */
 }
 
 /* Menu Positioning */
@@ -186,17 +196,20 @@
   color: #222222;
   transition: background-color 0.2s ease;
   font-weight: normal;
+  padding: 10px 10px !important; /* Updated padding to 10px 10px */
+  border-radius: 3px !important;
 }
 
 /* Environment Icon */
 .env-switcher-env-item .env-switcher-menu-item-icon {
-  width: 14px !important; /* Icon size: 14px */
-  height: 14px !important; /* Icon size: 14px */
+  width: 14px !important;
+  height: 14px !important;
   border-radius: 50% !important;
-  background-color: #9ca3af !important; /* Default grey */
-  margin: 0 8px 0 0 !important; /* Margin: 8px right */
+  background-color: #9ca3af !important;
+  margin: 0 !important;
   padding: 0 !important;
   flex-shrink: 0 !important;
+  margin-right: 8px !important; /* Added margin to create space */
 }
 
 /* Environment Colors */
@@ -219,6 +232,12 @@
 
 /* Environment Name */
 .env-switcher-menu-item-name {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* Increased gap */
+  font-size: 14px;
+  font-weight: 500;
+  color: #222;
   flex-grow: 1;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -226,10 +245,8 @@
   margin: 0;
   padding: 0;
   font-family: inherit;
-  font-size: inherit;
   line-height: inherit;
   text-align: inherit;
-  font-weight: inherit;
 }
 
 /* Hover States */
@@ -273,4 +290,76 @@
 /* .settings-item { ... } */
 /* Duplicate blocks from previous edits */
 /* Combined left/right padding rule */
-/* .env-switcher-menu-divider { ... } */ 
+/* .env-switcher-menu-divider { ... } */
+
+/* Toggle Styles */
+.toggle-wrapper {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  font-size: 14px !important;
+  font-weight: 400 !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  color: #666666 !important;
+  width: calc(100% - 10px) !important;
+  padding: 10px 10px !important; /* Updated padding to 10px 10px */
+  margin: 0 !important;
+  border-radius: 3px !important;
+}
+
+.toggle-input {
+  display: none;
+}
+
+.toggle-slider {
+  position: relative;
+  display: inline-block;
+  width: 34px; /* Even smaller width */
+  height: 18px; /* Even smaller height */
+  background-color: #ddd; /* Lighter background when off */
+  border-radius: 10px;
+  transition: .3s;
+  flex-shrink: 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) inset; /* Subtle inner shadow */
+  margin: 3px 0 0 3px; /* Add top and left margin/padding */
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 14px; /* Smaller toggle circle */
+  width: 14px; /* Smaller toggle circle */
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  border-radius: 50%;
+  transition: .3s;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); /* Lighter shadow */
+}
+
+.toggle-input:checked + .toggle-slider {
+  background-color: #2196F3;
+}
+
+.toggle-input:checked + .toggle-slider:before {
+  transform: translateX(16px);
+}
+
+.toggle-label {
+  flex-grow: 1;
+  cursor: pointer;
+  user-select: none;
+  font-size: 13px; /* Slightly smaller font */
+  font-weight: 400; /* Regular weight */
+  color: #555; /* Darker gray for better contrast */
+}
+
+/* Divider */
+.env-divider {
+  height: 1px;
+  background: #f0f0f0;
+  margin: 6px 0 8px 0; /* Adjusted margin */
+  border: none;
+  width: 100%;
+} 
