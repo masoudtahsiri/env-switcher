@@ -114,81 +114,58 @@ class EnvironmentLoader {
       frame.style.top = '0';
       frame.style.left = '0';
       frame.style.width = '100%';
-      // Set initial large height, will be adjusted on load
-      frame.style.height = '10000px'; 
+      frame.style.height = '15000px'; // Fixed height for scroll lock functionality
       frame.style.overflow = 'hidden'; // Prevent iframe scrollbars
       frame.style.transform = `translateY(-${wrapper.scrollTop}px)`;
 
       // 4. Style the container to clip the transformed iframe
       container.style.overflow = 'hidden'; // **IMPORTANT**
-      
-      // 5. Create a sizer element to define scroll height
-      let sizer = wrapper.querySelector('.scroll-sizer');
-      if (!sizer) {
-        sizer = document.createElement('div');
-        sizer.className = 'scroll-sizer';
-        sizer.style.position = 'relative';
-        sizer.style.width = '1px';
-        sizer.style.height = '10000px'; // Initial large height
-        sizer.style.float = 'left'; // Ensure it takes up space vertically
-        wrapper.appendChild(sizer);
-      }
 
-      // 6. Add scroll listener (store reference)
+      // 5. Add scroll listener (store reference)
       if (!this.scrollListeners[envId]) {
         this.scrollListeners[envId] = this.handleWrapperScroll.bind(this, envId);
       }
       wrapper.removeEventListener('scroll', this.scrollListeners[envId]); // Avoid duplicates
       wrapper.addEventListener('scroll', this.scrollListeners[envId]);
 
-      // 7. Adjust iframe and sizer height when iframe loads
-      frame.removeEventListener('load', this.handleFrameLoad); // Remove previous listener if any
-      this.handleFrameLoad = () => {
+      // 6. Calculate real document height when iframe loads
+      frame.addEventListener('load', () => {
         try {
-          // Try to get the actual height of the content
           const doc = frame.contentDocument;
           
           // Add null check for contentDocument
           if (!doc) {
-            console.warn(`contentDocument is null for ${envId}. Cannot determine height.`);
-            // Keep the large default heights for frame and sizer if error
-            frame.style.height = '10000px';
-            const sizer = frame.parentNode.querySelector('.scroll-sizer');
-            if (sizer) sizer.style.height = '10000px';
-            return; // Exit if document is not accessible
+            // console.warn(`contentDocument is null for ${envId}, cannot determine height.`); // Removed warning
+            // Keep the large default height set previously
+            return; 
           }
-
+          
+          // Try to get the actual height of the content
           const docHeight = Math.max(
-            doc.body?.scrollHeight || 0, // Use optional chaining and default value
-            doc.documentElement?.scrollHeight || 0,
-            doc.body?.offsetHeight || 0, 
-            doc.documentElement?.offsetHeight || 0,
-            doc.body?.clientHeight || 0, 
-            doc.documentElement?.clientHeight || 0
+            doc.body.scrollHeight, 
+            doc.documentElement.scrollHeight,
+            doc.body.offsetHeight, 
+            doc.documentElement.offsetHeight,
+            doc.body.clientHeight, 
+            doc.documentElement.clientHeight
           );
           
-          console.log(`Content height for ${envId}: ${docHeight}px`);
+          // Check for valid height
+          if (isNaN(docHeight) || docHeight <= 0) {
+             console.warn(`Invalid content height (${docHeight}) detected for ${envId}. Keeping default.`);
+             // Keep the large default height set previously
+             return;
+          }
           
-          // Ensure a minimum height if detection fails or content is very small
-          const finalHeight = Math.max(docHeight, 1000); // Use a minimum height (e.g., 1000px)
-
-          // Set iframe height to actual content height
-          frame.style.height = `${finalHeight}px`; 
-          // Set sizer height to match content height
-          const sizer = frame.parentNode.querySelector('.scroll-sizer');
-          if (sizer) sizer.style.height = `${finalHeight}px`; 
-
-          // Trigger initial scroll position update
-          this.handleWrapperScroll(envId);
+          console.log(`Content height for ${envId}: ${docHeight}px`);
+          // Reduce the extra padding significantly to the bare minimum
+          frame.style.height = `${docHeight + 1}px`; // Use a minimal buffer (e.g., 1px)
         } catch (e) {
-          console.warn(`Unable to determine content height for ${envId} (likely cross-origin or access issue):`, e);
-          // Keep the large default heights for frame and sizer if error
-          frame.style.height = '10000px';
-          const sizer = frame.parentNode.querySelector('.scroll-sizer');
-          if (sizer) sizer.style.height = '10000px';
+          // This catch handles security errors for cross-origin frames
+          console.warn(`Unable to determine content height for ${envId} (likely cross-origin security error):`, e);
+          // Keep the large default height set previously
         }
-      };
-      frame.addEventListener('load', this.handleFrameLoad);
+      });
 
       console.log(`Wrapper and listener set up for ${envId}`);
     });
@@ -316,4 +293,171 @@ class EnvironmentLoader {
       this.isScrolling = false;
     }, 15); // Slightly longer but still short
   }
+
+  // Tears down the wrapper/transform structure, restoring normal iframe behavior
+  removeScrollSync() {
+    console.log("Removing scroll sync");
+
+    // Remove wheel listener if it exists (for fallback method)
+    if (this.wheelListener) {
+      window.removeEventListener('wheel', this.wheelListener, { passive: false });
+      this.wheelListener = null;
+      console.log("Removed fallback wheel listener");
+    }
+
+    // Force the parent page to NOT scroll
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+
+    ['env1', 'env2'].forEach(envId => {
+      const wrapper = document.getElementById(`${envId}-scroll-wrapper`);
+      const frame = this.iframes[envId];
+      const container = frame?.closest('.env-frame-container');
+
+      if (frame && container) {
+        // Check if the frame is inside a wrapper
+        if (wrapper && wrapper.contains(frame)) {
+          console.log(`Removing wrapper for ${envId}`);
+          // 1. Remove scroll listener
+          if (this.scrollListeners[envId]) {
+            wrapper.removeEventListener('scroll', this.scrollListeners[envId]);
+            // Clear the listener reference
+            this.scrollListeners[envId] = null; 
+          }
+
+          // 2. Move iframe back to original container
+          container.appendChild(frame);
+
+          // 3. Remove the wrapper AFTER moving the frame
+          if (wrapper.parentNode === container) {
+            container.removeChild(wrapper);
+          }
+        }
+
+        // 4. Reset iframe styles **AFTER** moving it
+        frame.style.position = '';
+        frame.style.height = '100%';
+        frame.style.overflow = 'auto'; // Allow iframe content to scroll naturally
+        frame.style.transform = '';
+        frame.style.top = '';
+        frame.style.left = '';
+        frame.style.width = '';
+        frame.classList.remove('cross-origin-frame'); // Remove cross-origin class if present
+
+        // 5. Ensure container remains hidden to prevent document scrollbars
+        container.style.overflow = 'hidden'; 
+      } else {
+        console.warn(`Could not find frame or container for ${envId} during scroll sync removal.`);
+      }
+    });
+    
+    // Re-apply overflow hidden just in case
+    setTimeout(() => {
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+    }, 0);
+  }
 }
+
+async function initializeComparison() {
+  try {
+    // Get the stored data
+    const storedData = await chrome.storage.local.get(['comparisonData']);
+    console.log('Retrieved stored data:', storedData);
+    
+    if (!storedData.comparisonData) {
+      console.error('No comparison data found');
+      return;
+    }
+
+    const { env1, env2 } = storedData.comparisonData;
+    console.log('Retrieved comparison data:', storedData.comparisonData);
+
+    // Load both environments
+    await loadEnvironment('env1', env1);
+    await loadEnvironment('env2', env2);
+  } catch (error) {
+    console.error('Error initializing comparison:', error);
+  }
+}
+
+async function loadEnvironment(envId, env) {
+  console.log(`Loading environment ${envId}:`, env);
+  
+  if (!env || !env.url) {
+    console.error(`No URL provided for environment ${envId}`);
+    return;
+  }
+
+  try {
+    // Update the environment name and type
+    const nameElement = document.getElementById(`${envId}-name`);
+    const typeElement = document.getElementById(`${envId}-type`);
+    const loadingElement = document.getElementById(`${envId}-loading`);
+    const frame = document.getElementById(`${envId}-frame`);
+
+    if (nameElement) {
+      nameElement.textContent = env.name || 'Unknown Environment';
+    }
+
+    if (typeElement) {
+      const type = env.type || getEnvironmentType(env);
+      typeElement.textContent = type.charAt(0).toUpperCase() + type.slice(1);
+      typeElement.className = `env-type ${type}`;
+    }
+
+    if (loadingElement) {
+      loadingElement.style.display = 'flex';
+    }
+
+    if (frame) {
+      // Ensure proper iframe attributes
+      frame.setAttribute('name', envId);
+      frame.setAttribute('data-env-name', env.name);
+      frame.setAttribute('data-env-url', env.url);
+      
+      // Set iframe src directly
+      frame.src = env.url;
+      
+      // Set onload handler
+      frame.onload = () => {
+        console.log(`Frame ${envId} loaded with URL: ${env.url}`);
+        
+        if (loadingElement) {
+          loadingElement.style.display = 'none';
+        }
+        
+        // Try to access the iframe content (will fail for cross-origin)
+        try {
+          const frameDocument = frame.contentDocument;
+          console.log(`Frame ${envId} same-origin access successful`);
+        } catch (e) {
+          console.warn(`Frame ${envId} is cross-origin: ${e.message}`);
+        }
+      };
+    }
+  } catch (error) {
+    console.error(`Error loading environment ${envId}:`, error);
+    const loadingElement = document.getElementById(`${envId}-loading`);
+    if (loadingElement) {
+      loadingElement.style.display = 'none';
+    }
+  }
+}
+
+function getEnvironmentType(env) {
+  const name = env.name.toLowerCase();
+  if (name.includes('prod')) return 'production';
+  if (name.includes('stg')) return 'staging';
+  if (name.includes('dev')) return 'development';
+  if (name.includes('qa')) return 'qa';
+  if (name.includes('uat')) return 'uat';
+  return 'custom';
+}
+
+// Initialize when the page loads
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('Comparison page loaded, initializing...');
+  const loader = new EnvironmentLoader();
+  initializeComparison();
+}); 
