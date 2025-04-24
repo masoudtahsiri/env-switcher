@@ -588,25 +588,43 @@ class Popup {
       return;
     }
 
-    // Find the selected environment
-    const selectedEnv = this.environments.find(env => env.name === selectedEnvName);
-    console.log('Selected environment details:', selectedEnv);
+    // Get current group
+    const currentGroup = this.normalizeGroup(currentEnv.group);
+    console.log('Current environment group:', {
+      name: currentEnv.name,
+      group: currentEnv.group,
+      normalizedGroup: currentGroup,
+      url: currentEnv.url
+    });
+
+    // Find the selected environment within the same group
+    const selectedEnv = this.environments.find(env => {
+      if (!env || !env.name) return false;
+      
+      // Check if this is the target environment by name
+      const isTarget = env.name === selectedEnvName;
+      
+      // Check if it's in the same group
+      const envGroup = this.normalizeGroup(env.group);
+      const isSameGroup = currentGroup === envGroup;
+      
+      console.log('Target environment check:', {
+        name: env.name,
+        isTarget,
+        group: env.group,
+        normalizedGroup: envGroup,
+        isSameGroup,
+        url: env.url
+      });
+      
+      return isTarget && isSameGroup;
+    });
 
     if (!selectedEnv || !selectedEnv.url) {
-      console.error('Invalid selected environment:', selectedEnv);
-      alert('Selected environment not found or invalid');
-      return;
-    }
-
-    // Use our helper method to check if environments are in the same group
-    if (!this.areInSameGroup(currentEnv, selectedEnv)) {
-      console.error('Environment group mismatch detected in compareEnvironments');
-      
-      // This should not happen due to dropdown filtering, so log more debug info
-      console.warn('This should not happen. Environment groups should be filtered in the dropdown.');
-      console.warn('Available dropdown options:', Array.from(envSelect.options).map(o => o.value));
-      
-      alert('Can only compare environments in the same group');
+      console.error('Selected environment not found in the same group:', {
+        targetName: selectedEnvName,
+        currentGroup: currentGroup
+      });
       return;
     }
 
