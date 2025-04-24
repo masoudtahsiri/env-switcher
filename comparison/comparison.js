@@ -114,22 +114,36 @@ class EnvironmentLoader {
       frame.style.top = '0';
       frame.style.left = '0';
       frame.style.width = '100%';
-      frame.style.height = '20000px'; // Much larger height to ensure full content scrolling
+      // Set initial large height, will be adjusted on load
+      frame.style.height = '10000px'; 
       frame.style.overflow = 'hidden'; // Prevent iframe scrollbars
       frame.style.transform = `translateY(-${wrapper.scrollTop}px)`;
 
       // 4. Style the container to clip the transformed iframe
       container.style.overflow = 'hidden'; // **IMPORTANT**
+      
+      // 5. Create a sizer element to define scroll height
+      let sizer = wrapper.querySelector('.scroll-sizer');
+      if (!sizer) {
+        sizer = document.createElement('div');
+        sizer.className = 'scroll-sizer';
+        sizer.style.position = 'relative';
+        sizer.style.width = '1px';
+        sizer.style.height = '10000px'; // Initial large height
+        sizer.style.float = 'left'; // Ensure it takes up space vertically
+        wrapper.appendChild(sizer);
+      }
 
-      // 5. Add scroll listener (store reference)
+      // 6. Add scroll listener (store reference)
       if (!this.scrollListeners[envId]) {
         this.scrollListeners[envId] = this.handleWrapperScroll.bind(this, envId);
       }
       wrapper.removeEventListener('scroll', this.scrollListeners[envId]); // Avoid duplicates
       wrapper.addEventListener('scroll', this.scrollListeners[envId]);
 
-      // 6. Calculate real document height when iframe loads
-      frame.addEventListener('load', () => {
+      // 7. Adjust iframe and sizer height when iframe loads
+      frame.removeEventListener('load', this.handleFrameLoad); // Remove previous listener if any
+      this.handleFrameLoad = () => {
         try {
           // Try to get the actual height of the content
           const doc = frame.contentDocument;
@@ -143,12 +157,21 @@ class EnvironmentLoader {
           );
           
           console.log(`Content height for ${envId}: ${docHeight}px`);
-          frame.style.height = `${docHeight + 2000}px`; // Add margin to ensure we capture everything
+          // Set iframe height to actual content height
+          frame.style.height = `${docHeight}px`; 
+          // Set sizer height to match content height
+          sizer.style.height = `${docHeight}px`; 
+
+          // Trigger initial scroll position update
+          this.handleWrapperScroll(envId);
         } catch (e) {
           console.warn(`Unable to determine content height for ${envId} (likely cross-origin):`, e);
-          // Keep the large default height
+          // Keep the large default heights for frame and sizer if error
+          frame.style.height = '10000px';
+          sizer.style.height = '10000px';
         }
-      });
+      };
+      frame.addEventListener('load', this.handleFrameLoad);
 
       console.log(`Wrapper and listener set up for ${envId}`);
     });
