@@ -32,7 +32,23 @@ class Popup {
 
   // Helper method to normalize groups for consistent comparison
   normalizeGroup(group) {
-    return group ? group.toLowerCase().trim() : null;
+    // Log the input group value
+    console.log('Normalizing group:', { rawGroup: group });
+    
+    // If group is null, undefined, or empty string, return null
+    if (!group || group.trim() === '') {
+      console.log('Group is empty/null/undefined, returning null');
+      return null;
+    }
+    
+    // Normalize the group
+    const normalized = group.toLowerCase().trim();
+    console.log('Normalized group result:', { 
+      rawGroup: group,
+      normalized: normalized
+    });
+    
+    return normalized;
   }
 
   // Helper method to get the current environment
@@ -43,6 +59,7 @@ class Popup {
     }
     
     const currentUrl = this.currentTab.url;
+    console.log('Matching environment for URL:', currentUrl);
     
     try {
       const currentUrlObj = new URL(currentUrl);
@@ -54,10 +71,17 @@ class Popup {
         try {
           const envUrlObj = new URL(env.url);
           const envHostname = envUrlObj.hostname.replace(/^www\./, '');
-          return currentHostname === envHostname;
+          
+          // Check for exact match or if current URL starts with environment URL
+          const envUrlLower = env.url.toLowerCase();
+          const currentUrlLower = currentUrl.toLowerCase();
+          
+          return currentHostname === envHostname || 
+                 currentUrlLower.startsWith(envUrlLower.endsWith('/') ? envUrlLower : envUrlLower + '/');
         } catch (e) {
-          console.error('Error parsing environment URL:', e);
-          return false;
+          console.warn(`Could not parse URL for comparison: ${env.url}`, e);
+          // Fallback to simple string comparison if URL parsing fails
+          return currentUrl.toLowerCase().startsWith(env.url.toLowerCase());
         }
       });
       
@@ -65,8 +89,7 @@ class Popup {
         console.log('Found current environment:', {
           name: currentEnv.name,
           url: currentEnv.url,
-          group: currentEnv.group,
-          normalizedGroup: this.normalizeGroup(currentEnv.group)
+          group: currentEnv.group
         });
       } else {
         console.warn('No matching environment found for URL:', currentUrl);
@@ -81,24 +104,66 @@ class Popup {
 
   // Helper method to check if two environments are in the same group
   areInSameGroup(env1, env2) {
-    if (!env1 || !env2) return false;
-    
+    // If either environment is missing, return false
+    if (!env1 || !env2) {
+      console.log('areInSameGroup: One or both environments are missing', { env1, env2 });
+      return false;
+    }
+
+    // Log the raw environment data
+    console.log('areInSameGroup check:', {
+      env1: { 
+        name: env1.name, 
+        group: env1.group,
+        hasGroup: Boolean(env1.group),
+        groupType: typeof env1.group
+      },
+      env2: { 
+        name: env2.name, 
+        group: env2.group,
+        hasGroup: Boolean(env2.group),
+        groupType: typeof env2.group
+      }
+    });
+
+    // Handle case where both environments have no group property at all
+    if (!('group' in env1) && !('group' in env2)) {
+      console.log('areInSameGroup: Both environments have no group property');
+      return true;
+    }
+
+    // Normalize both groups
     const group1 = this.normalizeGroup(env1.group);
     const group2 = this.normalizeGroup(env2.group);
-    
-    const result = group1 === group2;
-    
-    console.log('Group comparison:', {
+
+    console.log('Normalized groups:', {
+      env1: { name: env1.name, originalGroup: env1.group, normalizedGroup: group1 },
+      env2: { name: env2.name, originalGroup: env2.group, normalizedGroup: group2 }
+    });
+
+    // If both environments have no group (normalized to null), consider them in the same group
+    if (group1 === null && group2 === null) {
+      console.log('areInSameGroup: Both environments are ungrouped');
+      return true;
+    }
+
+    // If only one environment has a group, they're not in the same group
+    if ((group1 === null && group2 !== null) || (group1 !== null && group2 === null)) {
+      console.log('areInSameGroup: One environment is grouped, the other is not');
+      return false;
+    }
+
+    // Compare the normalized groups
+    const sameGroup = group1 === group2;
+    console.log('areInSameGroup final result:', { 
+      sameGroup,
+      group1,
+      group2,
       env1Name: env1.name,
-      env1Group: env1.group,
-      normalizedGroup1: group1,
-      env2Name: env2.name,
-      env2Group: env2.group,
-      normalizedGroup2: group2,
-      sameGroup: result
+      env2Name: env2.name
     });
     
-    return result;
+    return sameGroup;
   }
 
   async init() {
@@ -132,6 +197,58 @@ class Popup {
       envSelect.remove(0);
     }
 
+    // Get current environment using our helper method
+    const currentEnv = this.getCurrentEnvironment();
+    console.log('Current environment for dropdown:', JSON.stringify(currentEnv, null, 2));
+
+    // If no current environment is found, show a message and disable the switch button
+    if (!currentEnv) {
+      console.warn('No current environment found');
+      this.updateCurrentEnvironmentDisplay(null);
+      
+      // Add message option
+      const messageOption = document.createElement('option');
+      messageOption.value = "";
+      messageOption.textContent = "Current URL does not match any environment";
+      messageOption.disabled = true;
+      messageOption.selected = true;
+      envSelect.appendChild(messageOption);
+      
+      // Disable the switch button
+      const switchButton = document.getElementById('switchBtn');
+      if (switchButton) {
+        switchButton.disabled = true;
+      }
+      
+      return;
+    }
+
+    // Enable the switch button
+    const switchButton = document.getElementById('switchBtn');
+    if (switchButton) {
+      switchButton.disabled = false;
+    }
+
+    // Update current environment display
+    this.updateCurrentEnvironmentDisplay(currentEnv);
+
+    // Get the current environment's group
+    const currentGroup = this.normalizeGroup(currentEnv.group);
+    console.log('Current environment group:', {
+      name: currentEnv.name,
+      group: currentEnv.group,
+      normalizedGroup: currentGroup,
+      url: currentEnv.url
+    });
+
+    // Log all available environments
+    console.log('All available environments:', this.environments.map(env => ({
+      name: env.name,
+      group: env.group,
+      normalizedGroup: this.normalizeGroup(env.group),
+      url: env.url
+    })));
+
     // Add default option
     const defaultOption = document.createElement('option');
     defaultOption.value = "";
@@ -140,54 +257,88 @@ class Popup {
     defaultOption.selected = true;
     envSelect.appendChild(defaultOption);
 
-    // Get current environment using our helper method
-    const currentEnv = this.getCurrentEnvironment();
-    console.log('Current environment for dropdown:', currentEnv);
-
-    // If no current environment is found, don't show any environments in the dropdown
-    if (!currentEnv) {
-      this.updateCurrentEnvironmentDisplay(null);
-      return;
-    }
-
-    // Update current environment display
-    this.updateCurrentEnvironmentDisplay(currentEnv);
-
-    // Filter environments to only show those from the same group
-    console.log('Filtering environments by group...');
-    
+    // First, filter environments to only those in the same group
     const sameGroupEnvs = this.environments.filter(env => {
       // Skip if environment is invalid
-      if (!env || !env.name) return false;
-      
+      if (!env || !env.name) {
+        console.log('Skipping invalid environment:', env);
+        return false;
+      }
+
       // Skip the current environment itself
-      if (env.name === currentEnv.name) return false;
+      if (env.name === currentEnv.name) {
+        console.log('Skipping current environment:', env.name);
+        return false;
+      }
+
+      // Check if environment is in the same group
+      const envGroup = this.normalizeGroup(env.group);
+      const isSameGroup = currentGroup === envGroup;
       
-      // Use our helper method to check if in same group
-      const inSameGroup = this.areInSameGroup(currentEnv, env);
-      
-      return inSameGroup;
+      console.log('Group comparison:', {
+        current: { name: currentEnv.name, group: currentGroup, url: currentEnv.url },
+        target: { name: env.name, group: envGroup, url: env.url },
+        isSameGroup
+      });
+
+      return isSameGroup;
     });
 
-    console.log('Same group environments to display:', sameGroupEnvs);
+    // Then, filter out environments with the same origin
+    const filteredEnvs = sameGroupEnvs.filter(env => {
+      try {
+        const currentOrigin = new URL(currentEnv.url).origin;
+        const envOrigin = new URL(env.url).origin;
+        const isSameOrigin = currentOrigin === envOrigin;
+        
+        if (isSameOrigin) {
+          console.log('Skipping environment with same origin:', {
+            name: env.name,
+            url: env.url,
+            origin: envOrigin
+          });
+        }
+        
+        return !isSameOrigin;
+      } catch (e) {
+        console.warn('Error comparing URLs:', e);
+        return false;
+      }
+    });
+
+    console.log('Filtered environments:', filteredEnvs.map(env => ({
+      name: env.name,
+      group: env.group,
+      normalizedGroup: this.normalizeGroup(env.group),
+      url: env.url
+    })));
 
     // Add environments to dropdown
-    if (sameGroupEnvs.length === 0) {
-      console.log('No other environments in the same group found');
+    if (filteredEnvs.length === 0) {
       const noEnvOption = document.createElement('option');
       noEnvOption.value = "";
       noEnvOption.textContent = "No other environments in this group";
       noEnvOption.disabled = true;
       envSelect.appendChild(noEnvOption);
     } else {
-      // Add environments to dropdown
-      sameGroupEnvs.forEach(env => {
+      filteredEnvs.forEach(env => {
         const option = document.createElement('option');
         option.value = env.name;
         option.textContent = env.name;
+        option.dataset.group = env.group || 'null';
+        option.dataset.url = env.url; // Add URL to dataset for debugging
         envSelect.appendChild(option);
       });
     }
+
+    // Log final dropdown state
+    console.log('Final dropdown options:', Array.from(envSelect.options).map(opt => ({
+      value: opt.value,
+      text: opt.textContent,
+      group: opt.dataset.group,
+      url: opt.dataset.url,
+      disabled: opt.disabled
+    })));
   }
 
   // Helper method to update the current environment display
@@ -304,87 +455,108 @@ class Popup {
   }
 
   async switchEnvironment() {
-    const envSelect = document.getElementById('environmentSelect');
-    if (!envSelect) {
-      console.error('Environment select not found');
-      return;
-    }
-
-    const selectedEnvName = envSelect.value;
-    
-    if (!selectedEnvName) {
-      alert('Please select an environment to switch to');
-      return;
-    }
-
-    const targetEnv = this.environments.find(env => env.name === selectedEnvName);
-    if (!targetEnv) {
-      alert('Selected environment not found');
-      return;
-    }
-
-    // Get current environment using our helper method
-    const currentEnv = this.getCurrentEnvironment();
-    
-    if (!currentEnv) {
-      console.error('Could not determine current environment');
-      alert('Could not determine current environment');
-      return;
-    }
-
-    // Use our helper method to check if environments are in the same group
-    if (!this.areInSameGroup(currentEnv, targetEnv)) {
-      console.error('Environment group mismatch detected in switchEnvironment');
-      
-      // This should not happen due to dropdown filtering, so log more debug info
-      console.warn('This should not happen. Environment groups should be filtered in the dropdown.');
-      console.warn('Available dropdown options:', Array.from(envSelect.options).map(o => o.value));
-      console.warn('All environments:', this.environments);
-      
-      alert('Can only switch between environments in the same group');
-      return;
-    }
-
     try {
-      console.log('Switching to environment:', targetEnv);
-      const openInNewTab = document.getElementById('openInNewTab')?.checked || false;
-      
-      // Extract the path from the current URL
-      const currentUrl = this.currentTab.url;
-      const currentUrlObj = new URL(currentUrl);
-      const path = currentUrlObj.pathname + currentUrlObj.search + currentUrlObj.hash;
-      
-      // Create a new URL object from the target environment URL
-      const targetUrlObj = new URL(targetEnv.url);
-      
-      // Set the path from the current URL
-      targetUrlObj.pathname = path;
-      
-      // Get the final URL string
-      const finalUrl = targetUrlObj.toString();
-      console.log('Final URL for environment switch:', finalUrl);
-      
-      // Send message to background script to handle the tab switch
-      chrome.runtime.sendMessage(
-        { 
-          action: 'switchTab', 
-          url: finalUrl, 
-          openInNewTab: openInNewTab 
-        },
-        (response) => {
-          if (chrome.runtime.lastError) {
-            console.error('Error sending switchTab message:', chrome.runtime.lastError.message);
-            alert('Could not communicate with the extension background.');
-          } else {
-            console.log('Background script response:', response);
-            if (response && response.success) {
-              console.log('Environment switch successful');
-            }
-          }
-        }
-      );
+      const select = document.getElementById('environmentSelect');
+      if (!select) {
+        console.error('Environment select element not found');
+        return;
+      }
+
+      const targetEnvName = select.value;
+      if (!targetEnvName) {
+        console.error('No environment selected');
+        return;
+      }
+
+      console.log('Switching to environment:', targetEnvName);
+
+      // Get current environment
+      const currentEnv = this.getCurrentEnvironment();
+      if (!currentEnv) {
+        console.error('Current environment not found');
+        return;
+      }
+
+      // Get current group
+      const currentGroup = this.normalizeGroup(currentEnv.group);
+      console.log('Current environment group:', {
+        name: currentEnv.name,
+        group: currentEnv.group,
+        normalizedGroup: currentGroup,
+        url: currentEnv.url
+      });
+
+      // Find target environment within the same group
+      const targetEnv = this.environments.find(env => {
+        if (!env || !env.name) return false;
+        
+        // Check if this is the target environment by name
+        const isTarget = env.name === targetEnvName;
+        
+        // Check if it's in the same group
+        const envGroup = this.normalizeGroup(env.group);
+        const isSameGroup = currentGroup === envGroup;
+        
+        console.log('Target environment check:', {
+          name: env.name,
+          isTarget,
+          group: env.group,
+          normalizedGroup: envGroup,
+          isSameGroup,
+          url: env.url
+        });
+        
+        return isTarget && isSameGroup;
+      });
+
+      if (!targetEnv) {
+        console.error('Target environment not found in the same group:', {
+          targetName: targetEnvName,
+          currentGroup: currentGroup
+        });
+        return;
+      }
+
+      // Log environment details
+      console.log('Environment details:', {
+        current: { name: currentEnv.name, group: currentEnv.group, url: currentEnv.url },
+        target: { name: targetEnv.name, group: targetEnv.group, url: targetEnv.url }
+      });
+
+      // Execute the switch
+      await this.executeSwitch(targetEnv);
     } catch (error) {
-      console.error('Error switching environment:', error);
+      console.error('Error in switchEnvironment:', error);
+      alert('Error switching environment: ' + error.message);
+    }
+  }
+
+  async executeSwitch(targetEnv) {
+    try {
+      // Get the current tab
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!tab) {
+        console.error('No active tab found');
+        return;
+      }
+
+      // Check if "Open in new tab" is enabled
+      const openInNewTab = document.getElementById('openInNewTab').checked;
+      
+      if (openInNewTab) {
+        // Create a new tab with the target URL
+        await chrome.tabs.create({ url: targetEnv.url });
+      } else {
+        // Update the current tab with the target URL
+        await chrome.tabs.update(tab.id, { url: targetEnv.url });
+      }
+      
+      // Update the UI with the target environment
+      this.updateCurrentEnvironmentDisplay(targetEnv);
+      
+      console.log('Successfully switched to environment:', targetEnv.name);
+    } catch (error) {
+      console.error('Error executing environment switch:', error);
       alert('Error switching environment: ' + error.message);
     }
   }
@@ -493,17 +665,7 @@ const popupInstance = new Popup();
 
 // Update the current environment section
 async function updateCurrentEnvironment() {
-  // Use the popup instance's getCurrentEnvironment method instead of a non-existent global function
+  // Use the popup instance's methods to get the current environment and update display
   const currentEnv = popupInstance.getCurrentEnvironment();
-  if (currentEnv) {
-    const envName = document.querySelector('.env-name');
-    const envUrl = document.querySelector('.env-url');
-    const envGroup = document.querySelector('.env-group-label');
-    
-    if (envName) envName.textContent = currentEnv.name;
-    if (envUrl) envUrl.textContent = currentEnv.url;
-    if (envGroup) {
-      envGroup.textContent = currentEnv.group || 'Ungrouped';
-    }
-  }
+  popupInstance.updateCurrentEnvironmentDisplay(currentEnv);
 } 

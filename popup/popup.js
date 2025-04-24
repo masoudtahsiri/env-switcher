@@ -1,8 +1,8 @@
 // Initialize popup
 document.addEventListener('DOMContentLoaded', async () => {
   try {
-    // Get current tab URL
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+  // Get current tab URL
+  const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
     const currentUrl = tabs[0]?.url;
     if (!currentUrl) {
       console.error('No current URL found');
@@ -14,34 +14,34 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Get environments from storage
     const { environments = [] } = await chrome.storage.sync.get('environments');
 
-    // Update current environment display
+  // Update current environment display
     const currentEnvName = document.querySelector('.env-text');
     const currentEnvUrl = document.querySelector('.env-url');
     const currentEnvDot = document.querySelector('.env-dot');
 
     if (currentEnvName && currentEnvUrl && currentEnvDot) {
-      const currentEnv = environments.find(env => {
+  const currentEnv = environments.find(env => {
         if (!env || !env.url) return false;
         try {
           const envUrl = new URL(env.url);
-          return currentUrlObj.origin === envUrl.origin;
+    return currentUrlObj.origin === envUrl.origin;
         } catch (e) {
           console.error('Error parsing environment URL:', e);
           return false;
         }
-      });
+  });
 
-      if (currentEnv) {
-        currentEnvName.textContent = currentEnv.name;
+  if (currentEnv) {
+    currentEnvName.textContent = currentEnv.name;
         currentEnvName.style.color = '#666';
         currentEnvDot.style.background = '#666';
-        currentEnvUrl.textContent = currentUrl;
-      } else {
-        currentEnvName.textContent = 'Unknown';
-        currentEnvName.style.color = '#666';
+    currentEnvUrl.textContent = currentUrl;
+  } else {
+    currentEnvName.textContent = 'Unknown';
+    currentEnvName.style.color = '#666';
         currentEnvDot.style.background = '#666';
-        currentEnvUrl.textContent = currentUrl;
-      }
+    currentEnvUrl.textContent = currentUrl;
+  }
     }
 
     // Find current environment for group filtering
@@ -83,10 +83,10 @@ document.addEventListener('DOMContentLoaded', async () => {
           const envUrl = new URL(env.url);
           // Only add environments that are not the current one
           if (envUrl.origin !== currentUrlObj.origin) {
-            const option = document.createElement('option');
+    const option = document.createElement('option');
             option.value = env.url;
-            option.textContent = env.name;
-            envSelect.appendChild(option);
+    option.textContent = env.name;
+    envSelect.appendChild(option);
           }
         } catch (e) {
           console.error('Error parsing environment URL:', e);
@@ -128,15 +128,15 @@ document.addEventListener('DOMContentLoaded', async () => {
           await chrome.tabs.create({ url: newUrl });
         } else {
           await chrome.tabs.update(currentTab.id, { url: newUrl });
-          window.close();
+    window.close();
         }
       } catch (error) {
         console.error('Error switching environment:', error);
         alert('Error switching environment: ' + error.message);
       }
-    });
+  });
 
-    // Handle adding new environment
+  // Handle adding new environment
     const addEnvForm = document.getElementById('add-env-form');
     if (addEnvForm) {
       addEnvForm.addEventListener('submit', async (e) => {
@@ -146,10 +146,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (!name || !url) {
           alert('Please fill in all required fields');
-          return;
-        }
+      return;
+    }
 
-        try {
+    try {
           // Ensure URL has protocol
           if (!url.startsWith('http://') && !url.startsWith('https://')) {
             url = 'https://' + url;
@@ -165,9 +165,9 @@ document.addEventListener('DOMContentLoaded', async () => {
           environments.push({ name, url });
           await chrome.storage.sync.set({ environments });
           window.location.reload();
-        } catch (e) {
-          alert('Please enter a valid URL');
-          return;
+    } catch (e) {
+      alert('Please enter a valid URL');
+      return;
         }
       });
     }
@@ -199,9 +199,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Add environments for this group
         envs.forEach(env => {
-          const envItem = document.createElement('div');
-          envItem.className = 'env-item';
-          envItem.innerHTML = `
+      const envItem = document.createElement('div');
+      envItem.className = 'env-item';
+      envItem.innerHTML = `
             <div class="env-info">
               <div class="env-name">
                 <span class="env-dot"></span>
@@ -217,8 +217,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </svg>
               </button>
             </div>
-          `;
-          envList.appendChild(envItem);
+      `;
+      envList.appendChild(envItem);
 
           // Add delete handler
           const deleteBtn = envItem.querySelector('.delete-btn');

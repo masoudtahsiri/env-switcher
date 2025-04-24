@@ -236,7 +236,7 @@ class EnvironmentManager {
         
         if (env) {
           // Populate form with environment data
-          document.getElementById('envName').value = env.name;
+          document.getElementById('envType').value = env.type || '';
           document.getElementById('envUrl').value = env.url;
           document.getElementById('envGroup').value = env.group || '';
           
@@ -272,7 +272,7 @@ class EnvironmentManager {
             
             // If this was the last environment, clear the form
             if (updatedEnvs.length === 0) {
-              document.getElementById('envName').value = '';
+              document.getElementById('envType').value = '';
               document.getElementById('envUrl').value = '';
               document.getElementById('envGroup').value = '';
               const submitButton = document.querySelector('button[type="submit"]');
