@@ -28,6 +28,10 @@
 
     console.log(`[Wrapper ${frameId}] Initializing with URL:`, url);
 
+    // Ensure document doesn't have scrollbars that could interfere
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+
     // Add scroll event listener to the document
     document.addEventListener('scroll', function(event) {
       console.log(`[Wrapper ${frameId}] Document scroll event:`, {
@@ -49,11 +53,15 @@
         deltaY: event.deltaY,
         deltaMode: event.deltaMode
       });
+      
+      // Calculate a higher factor for faster scrolling on long pages
+      const scrollFactor = 1.5;
+      
       window.parent.postMessage({
         type: 'scroll',
         frameId: frameId,
-        deltaX: event.deltaX,
-        deltaY: event.deltaY
+        deltaX: event.deltaX * scrollFactor,
+        deltaY: event.deltaY * scrollFactor
       }, '*');
     }, { passive: true });
 
@@ -75,7 +83,7 @@
       window.parent.postMessage({
         type: 'scroll',
         frameId: frameId,
-        deltaY: deltaY
+        deltaY: deltaY * 1.5 // Apply same scroll factor for touch
       }, '*');
       touchStartY = touchEndY;
     }, { passive: true });
@@ -84,7 +92,22 @@
     
     iframe.onload = function() {
       console.log(`[Wrapper ${frameId}] Iframe loaded`);
-      window.parent.postMessage({ type: 'loaded', frameId: frameId }, '*');
+      
+      // Report the content height to parent
+      const contentHeight = Math.max(
+        document.body.scrollHeight,
+        document.documentElement.scrollHeight,
+        document.body.offsetHeight,
+        document.documentElement.offsetHeight,
+        document.body.clientHeight,
+        document.documentElement.clientHeight
+      );
+      
+      window.parent.postMessage({ 
+        type: 'loaded', 
+        frameId: frameId, 
+        contentHeight: contentHeight 
+      }, '*');
     };
 
     // Listen for incoming scroll messages

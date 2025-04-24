@@ -7,6 +7,22 @@ class EnvironmentLoader {
     this.scrollListeners = {}; // Store bound event listeners
     this.iframes = {}; // Store iframe references
     this.setupScrollLock();
+    
+    // Add message listener for content height reports
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'loaded' && event.data.contentHeight) {
+        const frameId = event.data.frameId;
+        const contentHeight = event.data.contentHeight;
+        console.log(`Received content height for ${frameId}: ${contentHeight}px`);
+        
+        const frame = this.iframes[frameId];
+        if (frame) {
+          // Add extra padding to ensure we can scroll to the bottom
+          frame.style.height = `${contentHeight + 2000}px`;
+          console.log(`Updated height for ${frameId} to ${frame.style.height}`);
+        }
+      }
+    });
   }
 
   setupScrollLock() {
@@ -30,6 +46,10 @@ class EnvironmentLoader {
   // Sets up the wrapper/transform structure for scroll sync
   setupScrollSyncWrappers() {
     console.log("Setting up scroll sync wrappers");
+
+    // Force the main document to never scroll
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
 
     // Register iframe references
     this.iframes['env1'] = document.getElementById('env1-frame');
@@ -94,7 +114,7 @@ class EnvironmentLoader {
       frame.style.top = '0';
       frame.style.left = '0';
       frame.style.width = '100%';
-      frame.style.height = '10000px'; // Large height to ensure scrollability
+      frame.style.height = '20000px'; // Much larger height to ensure full content scrolling
       frame.style.overflow = 'hidden'; // Prevent iframe scrollbars
       frame.style.transform = `translateY(-${wrapper.scrollTop}px)`;
 
@@ -107,6 +127,28 @@ class EnvironmentLoader {
       }
       wrapper.removeEventListener('scroll', this.scrollListeners[envId]); // Avoid duplicates
       wrapper.addEventListener('scroll', this.scrollListeners[envId]);
+
+      // 6. Calculate real document height when iframe loads
+      frame.addEventListener('load', () => {
+        try {
+          // Try to get the actual height of the content
+          const doc = frame.contentDocument;
+          const docHeight = Math.max(
+            doc.body.scrollHeight, 
+            doc.documentElement.scrollHeight,
+            doc.body.offsetHeight, 
+            doc.documentElement.offsetHeight,
+            doc.body.clientHeight, 
+            doc.documentElement.clientHeight
+          );
+          
+          console.log(`Content height for ${envId}: ${docHeight}px`);
+          frame.style.height = `${docHeight + 2000}px`; // Add margin to ensure we capture everything
+        } catch (e) {
+          console.warn(`Unable to determine content height for ${envId} (likely cross-origin):`, e);
+          // Keep the large default height
+        }
+      });
 
       console.log(`Wrapper and listener set up for ${envId}`);
     });
@@ -128,6 +170,30 @@ class EnvironmentLoader {
     document.documentElement.style.overflow = 'hidden';
     document.body.style.overflow = 'hidden';
     
+    // Apply special styling for cross-origin frames
+    ['env1', 'env2'].forEach(envId => {
+      const frame = this.iframes[envId];
+      const container = frame.closest('.env-frame-container');
+      
+      if (frame && container) {
+        // Ensure iframe takes full height and has scrolling enabled
+        frame.style.width = '100%';
+        frame.style.height = '100%';
+        frame.style.border = 'none';
+        frame.style.overflow = 'auto'; // This is important for cross-origin frames
+        
+        // Container should not scroll
+        container.style.overflow = 'hidden';
+        
+        // Add special class for cross-origin handling
+        frame.classList.add('cross-origin-frame');
+      }
+    });
+    
+    // Setup scroll sync between frames using messaging
+    let lastScrollPosition = 0;
+    let lastScrollTime = 0;
+    
     // Use main window's wheel events to control iframe scrolling
     const handleWheelEvent = (e) => {
       if (!this.scrollLockEnabled) return;
@@ -138,17 +204,25 @@ class EnvironmentLoader {
       // Calculate how much to scroll
       const delta = e.deltaY || e.detail || e.wheelDelta;
       
+      // Use a higher value for faster scrolling on long pages
+      const scrollFactor = 1.5;
+      const scrollAmount = delta * scrollFactor;
+      
       try {
         // Try to scroll both frames
-        env1Frame.contentWindow.scrollBy(0, delta);
-        env2Frame.contentWindow.scrollBy(0, delta);
+        env1Frame.contentWindow.scrollBy(0, scrollAmount);
+        env2Frame.contentWindow.scrollBy(0, scrollAmount);
+        
+        // Record scroll position and time
+        lastScrollPosition += scrollAmount;
+        lastScrollTime = Date.now();
       } catch (err) {
         console.error("Error syncing scroll with fallback method:", err);
       }
       
       setTimeout(() => {
         this.isScrolling = false;
-      }, 50);
+      }, 30); // Shorter timeout for more responsive scrolling
       
       // Prevent default scrolling of the parent window
       e.preventDefault();
