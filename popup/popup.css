@@ -240,6 +240,7 @@ select:focus {
   font-weight: 500;
   color: #374151;
   margin-top: 8px;
+  padding-top: 8px;
 }
 
 .toggle-input {
@@ -250,6 +251,7 @@ select:focus {
   border-radius: 9999px;
   position: relative;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .toggle-input::before {

@@ -357,6 +357,65 @@ class EnvironmentLoader {
       document.body.style.overflow = 'hidden';
     }, 0);
   }
+
+  async loadUrls(currentUrl, env1BaseUrl, env2BaseUrl) {
+    try {
+      console.log('Starting loadUrls with:', { currentUrl, env1BaseUrl, env2BaseUrl });
+      
+      // Remove trailing slashes from base URLs
+      env1BaseUrl = env1BaseUrl.replace(/\/$/, '');
+      env2BaseUrl = env2BaseUrl.replace(/\/$/, '');
+      
+      // Show loading indicators
+      this.showLoading(true);
+      
+      // Create a wrapper HTML that includes necessary CORS headers
+      const wrapperHtml = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+              body { margin: 0; padding: 0; }
+              iframe { width: 100%; height: 100%; border: none; }
+            </style>
+          </head>
+          <body>
+            <iframe src="about:blank"></iframe>
+          </body>
+        </html>
+      `;
+      
+      // Set initial content
+      this.env1Frame.srcdoc = wrapperHtml;
+      this.env2Frame.srcdoc = wrapperHtml;
+      
+      // Wait for initial content to load
+      await Promise.all([
+        this.waitForIframeLoad(this.env1Frame),
+        this.waitForIframeLoad(this.env2Frame)
+      ]);
+      
+      // Load content directly in iframes
+      this.env1Frame.src = env1BaseUrl;
+      this.env2Frame.src = env2BaseUrl;
+      
+      // Wait for content to load
+      await Promise.all([
+        this.waitForIframeLoad(this.env1Frame),
+        this.waitForIframeLoad(this.env2Frame)
+      ]);
+      
+      // Hide loading indicators
+      this.showLoading(false);
+      console.log('Loading complete!');
+      
+    } catch (e) {
+      console.error('Error loading URLs:', e);
+      this.showError(`Error loading URLs: ${e.message}. Please check the environment configurations and make sure the URLs are accessible.`);
+    }
+  }
 }
 
 async function initializeComparison() {

@@ -5,19 +5,23 @@
   "description": "Quickly switch between different environments of your web applications",
   "permissions": [
     "storage",
-    "tabs"
+    "tabs",
+    "scripting",
+    "activeTab"
   ],
   "host_permissions": [
     "<all_urls>"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
       "js": ["content-scripts/floating-widget.js"],
-      "css": ["content-scripts/floating-widget.css"]
+      "css": ["content-scripts/floating-widget.css"],
+      "run_at": "document_end"
     }
   ],
   "action": {
