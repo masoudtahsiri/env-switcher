@@ -23,5 +23,3 @@ Last Updated: March 19, 2024
 ## Contact
 If you have any questions about this privacy policy, please contact: dev@refact.co 
 
-This privacy policy is complete and ready to be used in your Chrome Web Store submission. You can use this URL in your Chrome Web Store listing:
-https://github.com/masoudtahsiri/env-switcher/blob/main/PRIVACY.md 
