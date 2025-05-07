@@ -202,31 +202,31 @@
 
 /* Environment Icon */
 .env-switcher-env-item .env-switcher-menu-item-icon {
-  width: 14px !important;
-  height: 14px !important;
-  border-radius: 50% !important;
-  background-color: #9ca3af !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  flex-shrink: 0 !important;
-  margin-right: 8px !important; /* Added margin to create space */
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-color: #9ca3af;
+  margin: 0;
+  padding: 0 5px 0 0 !important;
+  flex-shrink: 0;
+  margin-right: 8px;
 }
 
 /* Environment Colors */
 .env-switcher-env-item .env-switcher-menu-item-icon.production {
-  background-color: #34D399 !important; /* Green */
+  background-color: #34D399;
 }
 .env-switcher-env-item .env-switcher-menu-item-icon.staging {
-  background-color: #F9D74C !important; /* Yellow */
+  background-color: #F9D74C;
 }
 .env-switcher-env-item .env-switcher-menu-item-icon.development {
-  background-color: #60A5FA !important; /* Blue */
+  background-color: #60A5FA;
 }
 .env-switcher-env-item .env-switcher-menu-item-icon.qa {
-  background-color: #F97316 !important; /* Orange */
+  background-color: #F97316;
 }
 .env-switcher-env-item .env-switcher-menu-item-icon.uat {
-  background-color: #A78BFA !important; /* Purple */
+  background-color: #A78BFA;
 }
 /* Custom uses default grey */
 
@@ -234,7 +234,7 @@
 .env-switcher-menu-item-name {
   display: flex;
   align-items: center;
-  gap: 8px; /* Increased gap */
+  gap: 8px;
   font-size: 14px;
   font-weight: 500;
   color: #222;
@@ -243,7 +243,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   margin: 0;
-  padding: 0;
+  padding: 0 0 0 5px !important;
   font-family: inherit;
   line-height: inherit;
   text-align: inherit;

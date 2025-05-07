@@ -290,6 +290,7 @@ class Popup {
       
       // Update dot color based on environment type or custom color
       envDotElement.className = 'env-dot';
+      envDotElement.style.display = 'inline-block';
       const envType = getEnvironmentType(env);
       if (envType) {
         envDotElement.classList.add(envType);
@@ -305,6 +306,7 @@ class Popup {
       envNameElement.classList.add('env-unknown');
       envUrlElement.textContent = this.currentTab ? this.currentTab.url : 'Unknown URL';
       envDotElement.className = 'env-dot';
+      envDotElement.style.display = 'none';
       if (envGroupElement) {
         envGroupElement.textContent = 'Ungrouped';
       }

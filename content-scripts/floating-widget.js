@@ -47,6 +47,7 @@ class FloatingWidget {
       try {
         const storage = await chrome.storage.sync.get(['environments', 'widgetPosition', 'openInNewTab', 'widgetVisible']);
         this.environments = storage.environments || [];
+        console.log('Loaded environments in widget:', this.environments);
         this.widgetPosition = storage.widgetPosition;
         this.openInNewTab = storage.openInNewTab || false;
         this.widgetVisible = storage.widgetVisible !== false;
@@ -475,6 +476,11 @@ class FloatingWidget {
     const icon = document.createElement('span');
     icon.className = iconClass;
     icon.setAttribute('aria-hidden', 'true');
+    if (env.color) {
+      icon.style.background = env.color;
+    } else {
+      icon.style.background = '';
+    }
 
     const name = document.createElement('div');
     name.className = 'env-switcher-menu-item-name';
