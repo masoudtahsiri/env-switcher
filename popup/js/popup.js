@@ -123,35 +123,10 @@ class Popup {
         this.loadWidgetVisibility()
       ]);
       
-      // Initialize widget toggle state
-      await this.initializeWidgetToggle();
-      
       // Setup event listeners
       this.setupEventListeners();
     } catch (error) {
       // Handle error silently
-    }
-  }
-
-  async initializeWidgetToggle() {
-    try {
-      const widgetToggle = document.getElementById('widgetToggle');
-      if (!widgetToggle) {
-        console.warn('Widget toggle not found');
-        return;
-      }
-
-      // Get the current visibility state from storage
-      const { widgetVisible } = await chrome.storage.sync.get('widgetVisible');
-      console.log('📋 Initial widget visibility state:', {
-        widgetVisible,
-        timestamp: new Date().toISOString()
-      });
-
-      // Set the toggle state
-      widgetToggle.checked = widgetVisible !== false;
-    } catch (error) {
-      console.error('Error initializing widget toggle:', error);
     }
   }
 
@@ -347,64 +322,6 @@ class Popup {
       compareButton.addEventListener('click', () => {
         this.compareEnvironments();
       });
-    }
-
-    // Handle widget visibility toggle
-    const widgetToggle = document.getElementById('widgetToggle');
-    if (widgetToggle) {
-      widgetToggle.addEventListener('change', async function(e) {
-        const isVisible = e.target.checked;
-        console.log('🔘 Widget toggle changed:', {
-          newState: isVisible ? 'VISIBLE' : 'HIDDEN',
-          timestamp: new Date().toISOString()
-        });
-
-        try {
-          // Get current tab
-          const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-          if (!tab) {
-            console.error('❌ No active tab found');
-            return;
-          }
-
-          // Update storage first
-          await chrome.storage.sync.set({ widgetVisible: isVisible });
-          console.log('💾 Storage updated:', {
-            widgetVisible: isVisible,
-            timestamp: new Date().toISOString()
-          });
-
-          // Send message to content script to update visibility
-          chrome.tabs.sendMessage(tab.id, {
-            action: 'updateWidgetVisibility',
-            isVisible: isVisible
-          }, (response) => {
-            if (chrome.runtime.lastError) {
-              console.error('❌ Error sending message to content script:', chrome.runtime.lastError);
-              // If the content script isn't loaded, inject it
-              chrome.runtime.sendMessage({
-                action: 'injectWidgetScript',
-                tabId: tab.id,
-                isVisible: isVisible
-              }, (response) => {
-                if (chrome.runtime.lastError) {
-                  console.error('❌ Error sending message to background:', chrome.runtime.lastError);
-                } else if (response && response.error) {
-                  console.error('❌ Error from background script:', response.error);
-                } else {
-                  console.log('✅ Background script handled injection successfully');
-                }
-              });
-            } else {
-              console.log('✅ Content script updated visibility successfully');
-            }
-          });
-        } catch (error) {
-          console.error('❌ Error in widget toggle handler:', error);
-        }
-      });
-    } else {
-      console.warn('Widget toggle not found');
     }
 
     // Add event listener for manage button

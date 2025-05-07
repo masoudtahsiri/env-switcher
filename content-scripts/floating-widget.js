@@ -665,6 +665,133 @@ class FloatingWidget {
 
     safeAddEventListener(this.widget, 'mousedown', (e) => this.startDragging(e));
     safeAddEventListener(window, 'resize', () => this.updateMenuPosition());
+
+    let visibilityChangeTimeout = null;
+    let recoveryAttempts = 0;
+    const MAX_RECOVERY_ATTEMPTS = 3;
+    const INITIAL_RETRY_DELAY = 1000;
+    let isRecovering = false;
+    let lastRecoveryAttempt = 0;
+    const MIN_RECOVERY_INTERVAL = 5000;
+    let isContextValid = true;
+
+    const cleanupVisibilityChange = () => {
+      if (visibilityChangeTimeout) {
+        clearTimeout(visibilityChangeTimeout);
+        visibilityChangeTimeout = null;
+      }
+    };
+
+    const checkContextValidity = () => {
+      try {
+        isContextValid = typeof chrome !== 'undefined' && 
+                        chrome.runtime && 
+                        chrome.runtime.id && 
+                        typeof chrome.storage !== 'undefined';
+        return isContextValid;
+      } catch (error) {
+        isContextValid = false;
+        return false;
+      }
+    };
+
+    const attemptRecovery = async () => {
+      const now = Date.now();
+      if (now - lastRecoveryAttempt < MIN_RECOVERY_INTERVAL) {
+        return;
+      }
+
+      if (isRecovering) {
+        return;
+      }
+
+      lastRecoveryAttempt = now;
+      isRecovering = true;
+      
+      try {
+        if (!checkContextValidity()) {
+          await this.handleContextInvalidation();
+          recoveryAttempts = 0;
+          cleanupVisibilityChange();
+        } else {
+          cleanupVisibilityChange();
+        }
+      } catch (error) {
+        recoveryAttempts++;
+        
+        if (recoveryAttempts >= MAX_RECOVERY_ATTEMPTS) {
+          cleanupVisibilityChange();
+          window.location.reload();
+        } else {
+          const delay = INITIAL_RETRY_DELAY * Math.pow(2, recoveryAttempts);
+          visibilityChangeTimeout = setTimeout(attemptRecovery, delay);
+        }
+      }
+    };
+
+    safeAddEventListener(document, 'visibilitychange', () => {
+      if (!document.hidden) {
+        if (visibilityChangeTimeout) {
+          clearTimeout(visibilityChangeTimeout);
+          visibilityChangeTimeout = null;
+        }
+
+        visibilityChangeTimeout = setTimeout(async () => {
+          try {
+            if (!checkContextValidity()) {
+              await attemptRecovery().catch(err => {
+                if (recoveryAttempts >= MAX_RECOVERY_ATTEMPTS) {
+                  window.location.reload();
+                }
+              });
+              return;
+            }
+
+            recoveryAttempts = 0;
+            isRecovering = false;
+
+            if (!this.widget) {
+              this.createWidget();
+              if (this.widgetPosition) {
+                this.widget.style.left = this.widgetPosition.left;
+                this.widget.style.top = this.widgetPosition.top;
+              }
+              this.setVisibility(this.widgetVisible);
+            }
+
+            try {
+              const result = await chrome.storage.sync.get(['widgetVisible']);
+              if (result.widgetVisible !== undefined && result.widgetVisible !== this.widgetVisible) {
+                this.setVisibility(result.widgetVisible);
+              }
+            } catch (storageError) {
+              if (storageError.message && storageError.message.includes('Extension context invalidated')) {
+                isContextValid = false;
+                await attemptRecovery();
+              }
+            }
+
+          } catch (error) {
+            if (visibilityChangeTimeout) {
+              clearTimeout(visibilityChangeTimeout);
+              visibilityChangeTimeout = null;
+            }
+            
+            recoveryAttempts++;
+            
+            if (recoveryAttempts < MAX_RECOVERY_ATTEMPTS) {
+              isRecovering = false;
+              lastRecoveryAttempt = 0;
+              
+              const delay = INITIAL_RETRY_DELAY * Math.pow(2, recoveryAttempts);
+              visibilityChangeTimeout = setTimeout(attemptRecovery, delay);
+            } else {
+              window.location.reload();
+            }
+          }
+        }, 1000);
+      }
+    });
   }
 
   setVisibility(visible) {
@@ -710,6 +837,11 @@ class FloatingWidget {
     if (this.widget && this.widget.parentNode) {
       this.widget.parentNode.removeChild(this.widget);
       this.widget = null;
+    }
+    
+    if (this.visibilityChangeTimeout) {
+      clearTimeout(this.visibilityChangeTimeout);
+      this.visibilityChangeTimeout = null;
     }
     
     return new Promise((resolve, reject) => {
@@ -769,6 +901,42 @@ async function initializeWidget() {
     // Handle error silently
   }
 }
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === 'updateWidgetVisibility') {
+    if (message.isVisible) {
+      if (!widgetInstance) {
+        widgetInstance = new FloatingWidget();
+      } else {
+        widgetInstance.setVisibility(true);
+      }
+    } else {
+      if (widgetInstance) {
+        widgetInstance.setVisibility(false);
+      }
+    }
+    
+    sendResponse({ success: true });
+    return true;
+  }
+  return false;
+});
+
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName === 'sync' && changes.widgetVisible) {
+    if (changes.widgetVisible.newValue) {
+      if (!widgetInstance) {
+        widgetInstance = new FloatingWidget();
+      } else {
+        widgetInstance.setVisibility(true);
+      }
+    } else {
+      if (widgetInstance) {
+        widgetInstance.setVisibility(false);
+      }
+    }
+  }
+});
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initializeWidget);
