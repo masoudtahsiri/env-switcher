@@ -137,10 +137,16 @@ class EnvironmentManager {
         // Get environment type class
         const envType = this.getEnvironmentTypeFromName(env.name);
         
+        // Use stored color if present
+        let dotStyle = '';
+        if (env.color) {
+          dotStyle = `style="background:${env.color}"`;
+        }
+        
         item.innerHTML = `
           <div class="env-info">
             <div class="env-name">
-              <span class="env-dot ${envType}"></span>
+              <span class="env-dot ${envType}" ${dotStyle}></span>
               <span class="env-text">${env.name}</span>
               ${env.group ? `<span class="env-badge">${env.group}</span>` : ''}
             </div>
@@ -295,7 +301,10 @@ class EnvironmentManager {
     const addGroupBtn = document.getElementById('addGroupBtn');
     const setDomainBtn = document.getElementById('setDomainBtn');
     const backButton = document.getElementById('back-to-main');
-    
+    const envTypeSelect = document.getElementById('envType');
+    const customNameGroup = document.getElementById('customNameGroup');
+    const customEnvName = document.getElementById('customEnvName');
+
     if (backButton) {
       backButton.addEventListener('click', () => {
         // Simply navigate to popup.html
@@ -313,6 +322,15 @@ class EnvironmentManager {
         const submitButton = e.target.querySelector('button[type="submit"]');
         const isEditing = submitButton.dataset.editing; // Original name of env being edited
         const editingUrl = submitButton.dataset.editingUrl; // Original URL of env being edited
+        let customTypeName = '';
+        let color = '';
+        if (type === 'custom') {
+          customTypeName = customEnvName.value.trim();
+          if (!customTypeName) {
+            alert('Please enter a custom type name');
+            return;
+          }
+        }
 
         if (!type || !url) {
           alert('Please fill in all required fields');
@@ -326,8 +344,17 @@ class EnvironmentManager {
           // Get existing environments
           const { environments = [] } = await chrome.storage.sync.get('environments');
 
-          // Generate the base name using the helper function
-          const generatedName = generateBaseName(type, url);
+          // Collect all used colors
+          const usedColors = new Set(environments.map(env => env.color).filter(Boolean));
+          // Helper to generate a unique color
+          function generateUniqueColor() {
+            let color;
+            do {
+              color = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+            } while (usedColors.has(color));
+            usedColors.add(color);
+            return color;
+          }
 
           if (isEditing) {
             // Find the environment using its original name and URL
@@ -335,17 +362,18 @@ class EnvironmentManager {
             
             if (index !== -1) {
               // Check if the NEW combination of type and URL already exists (excluding the one being edited)
-              if (environments.some((env, i) => i !== index && env.type === type && env.url === url)) {
+              if (environments.some((env, i) => i !== index && env.type === (type === 'custom' ? customTypeName : type) && env.url === url)) {
                 alert('Another environment with this type and URL already exists.');
                 return;
               }
               
-              // Update the environment, using the newly generated name
+              // Update the environment, using the correct name
               environments[index] = {
-                name: generatedName, // Use the generated name directly
-                type,
+                name: type === 'custom' ? customTypeName : generateBaseName(type, url),
+                type: type === 'custom' ? customTypeName : type,
                 url,
-                group: group || null
+                group: group || null,
+                color: type === 'custom' ? (environments[index].color || generateUniqueColor()) : undefined
               };
               
               // Save to storage
@@ -369,17 +397,18 @@ class EnvironmentManager {
             }
           } else {
             // Check if type and URL already exists when adding
-            if (environments.some(env => env.type === type && env.url === url)) {
+            if (environments.some(env => env.type === (type === 'custom' ? customTypeName : type) && env.url === url)) {
               alert('An environment with this type and URL already exists');
               return;
             }
 
             // Add new environment using the generated name directly
             environments.push({
-              name: generatedName, // Use the generated name directly
-              type,
+              name: type === 'custom' ? customTypeName : generateBaseName(type, url),
+              type: type === 'custom' ? customTypeName : type,
               url,
-              group: group || null
+              group: group || null,
+              color: type === 'custom' ? generateUniqueColor() : undefined
             });
             
             // Save to storage
@@ -450,6 +479,17 @@ class EnvironmentManager {
         } catch (error) {
           console.error('Error fetching current URL:', error);
           alert('Error fetching current URL. Make sure the tab is fully loaded.');
+        }
+      });
+    }
+
+    if (envTypeSelect && customNameGroup) {
+      envTypeSelect.addEventListener('change', function() {
+        if (envTypeSelect.value === 'custom') {
+          customNameGroup.style.display = '';
+        } else {
+          customNameGroup.style.display = 'none';
+          if (customEnvName) customEnvName.value = '';
         }
       });
     }

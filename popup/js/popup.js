@@ -288,11 +288,16 @@ class Popup {
         envGroupElement.textContent = env.group || 'Ungrouped';
       }
       
-      // Update dot color based on environment type
+      // Update dot color based on environment type or custom color
       envDotElement.className = 'env-dot';
       const envType = getEnvironmentType(env);
       if (envType) {
         envDotElement.classList.add(envType);
+      }
+      if (env.color) {
+        envDotElement.style.background = env.color;
+      } else {
+        envDotElement.style.background = '';
       }
     } else {
       // No environment found
