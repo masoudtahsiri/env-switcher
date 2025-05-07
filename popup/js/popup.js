@@ -27,26 +27,19 @@ class Popup {
   constructor() {
     this.environments = [];
     this.currentTab = null;
+    this.widgetVisible = true;
     this.init();
   }
 
   // Helper method to normalize groups for consistent comparison
   normalizeGroup(group) {
-    // Log the input group value
-    console.log('Normalizing group:', { rawGroup: group });
-    
     // If group is null, undefined, or empty string, return null
     if (!group || group.trim() === '') {
-      console.log('Group is empty/null/undefined, returning null');
       return null;
     }
     
     // Normalize the group
     const normalized = group.toLowerCase().trim();
-    console.log('Normalized group result:', { 
-      rawGroup: group,
-      normalized: normalized
-    });
     
     return normalized;
   }
@@ -124,8 +117,11 @@ class Popup {
       const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
       this.currentTab = tabs[0];
       
-      // Load environments
-      await this.loadEnvironments();
+      // Load environments and widget visibility state
+      await Promise.all([
+        this.loadEnvironments(),
+        this.loadWidgetVisibility()
+      ]);
       
       // Initialize widget toggle state
       await this.initializeWidgetToggle();
@@ -133,7 +129,7 @@ class Popup {
       // Setup event listeners
       this.setupEventListeners();
     } catch (error) {
-      console.error('Error initializing popup:', error);
+      // Handle error silently
     }
   }
 
@@ -163,6 +159,39 @@ class Popup {
     const storage = await chrome.storage.sync.get('environments');
     this.environments = storage.environments || [];
     this.updateEnvironmentList();
+  }
+
+  async loadWidgetVisibility() {
+    try {
+      const storage = await chrome.storage.sync.get('widgetVisible');
+      this.widgetVisible = storage.widgetVisible !== false;
+      const widgetToggle = document.getElementById('widgetVisible');
+      if (widgetToggle) {
+        widgetToggle.checked = this.widgetVisible;
+      }
+    } catch (error) {
+      // Handle error silently
+    }
+  }
+
+  async toggleWidgetVisibility(visible) {
+    try {
+      this.widgetVisible = visible;
+      await chrome.storage.sync.set({ widgetVisible: visible });
+      
+      // Send message to content script to update widget visibility
+      if (this.currentTab?.id) {
+        await chrome.tabs.sendMessage(this.currentTab.id, {
+          action: 'updateWidgetVisibility',
+          isVisible: visible
+        });
+        
+        // Reload the current tab to ensure changes take effect
+        await chrome.tabs.reload(this.currentTab.id);
+      }
+    } catch (error) {
+      // Handle error silently
+    }
   }
 
   updateEnvironmentList() {
@@ -273,7 +302,6 @@ class Popup {
     const envGroupElement = document.querySelector('.env-group-label');
     
     if (!envNameElement || !envUrlElement || !envDotElement) {
-      console.error('Environment display elements not found');
       return;
     }
     
@@ -309,22 +337,16 @@ class Popup {
     const switchButton = document.getElementById('switchBtn');
     if (switchButton) {
       switchButton.addEventListener('click', () => {
-        console.log('Switch button clicked');
         this.switchEnvironment();
       });
-    } else {
-      console.warn('Switch button not found');
     }
 
     // Add event listener for compare button
     const compareButton = document.getElementById('compareBtn');
     if (compareButton) {
       compareButton.addEventListener('click', () => {
-        console.log('Compare button clicked');
         this.compareEnvironments();
       });
-    } else {
-      console.warn('Compare button not found');
     }
 
     // Handle widget visibility toggle
@@ -389,7 +411,6 @@ class Popup {
     const manageButton = document.getElementById('manageBtn');
     if (manageButton) {
       manageButton.addEventListener('click', () => {
-        console.log('Manage button clicked');
         // Load manage.html content into the popup
         fetch('manage.html')
           .then(response => response.text())
@@ -401,14 +422,12 @@ class Popup {
             // Get the popup content
             const popupContent = temp.querySelector('.popup');
             if (!popupContent) {
-              console.error('Popup content not found in manage.html');
               return;
             }
             
             // Replace the current popup content
             const currentPopup = document.querySelector('.popup');
             if (!currentPopup) {
-              console.error('Current popup element not found');
               return;
             }
             
@@ -421,18 +440,22 @@ class Popup {
               // Initialize the manage page
               if (typeof EnvironmentManager !== 'undefined') {
                 new EnvironmentManager();
-              } else {
-                console.error('EnvironmentManager class not found');
               }
             };
             document.body.appendChild(script);
           })
           .catch(error => {
-            console.error('Error loading manage page:', error);
+            // Handle error silently
           });
       });
-    } else {
-      console.warn('Manage button not found');
+    }
+
+    // Add widget visibility toggle listener
+    const widgetToggle = document.getElementById('widgetVisible');
+    if (widgetToggle) {
+      widgetToggle.addEventListener('change', (e) => {
+        this.toggleWidgetVisibility(e.target.checked);
+      });
     }
   }
 
@@ -440,33 +463,22 @@ class Popup {
     try {
       const select = document.getElementById('environmentSelect');
       if (!select) {
-        console.error('Environment select element not found');
         return;
       }
 
       const targetEnvName = select.value;
       if (!targetEnvName) {
-        console.error('No environment selected');
         return;
       }
-
-      console.log('Switching to environment:', targetEnvName);
 
       // Get current environment
       const currentEnv = this.getCurrentEnvironment();
       if (!currentEnv) {
-        console.error('Current environment not found');
         return;
       }
 
       // Get current group
       const currentGroup = this.normalizeGroup(currentEnv.group);
-      console.log('Current environment group:', {
-        name: currentEnv.name,
-        group: currentEnv.group,
-        normalizedGroup: currentGroup,
-        url: currentEnv.url
-      });
 
       // Find target environment within the same group
       const targetEnv = this.environments.find(env => {
@@ -479,37 +491,17 @@ class Popup {
         const envGroup = this.normalizeGroup(env.group);
         const isSameGroup = currentGroup === envGroup;
         
-        console.log('Target environment check:', {
-          name: env.name,
-          isTarget,
-          group: env.group,
-          normalizedGroup: envGroup,
-          isSameGroup,
-          url: env.url
-        });
-        
         return isTarget && isSameGroup;
       });
 
       if (!targetEnv) {
-        console.error('Target environment not found in the same group:', {
-          targetName: targetEnvName,
-          currentGroup: currentGroup
-        });
         return;
       }
-
-      // Log environment details
-      console.log('Environment details:', {
-        current: { name: currentEnv.name, group: currentEnv.group, url: currentEnv.url },
-        target: { name: targetEnv.name, group: targetEnv.group, url: targetEnv.url }
-      });
 
       // Execute the switch
       await this.executeSwitch(targetEnv);
     } catch (error) {
-      console.error('Error in switchEnvironment:', error);
-      alert('Error switching environment: ' + error.message);
+      // Handle error silently
     }
   }
 
@@ -518,7 +510,6 @@ class Popup {
       // Get the current tab
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       if (!tab) {
-        console.error('No active tab found');
         return;
       }
 
@@ -536,48 +527,32 @@ class Popup {
       // Update the UI with the target environment
       this.updateCurrentEnvironmentDisplay(targetEnv);
       
-      console.log('Successfully switched to environment:', targetEnv.name);
     } catch (error) {
-      console.error('Error executing environment switch:', error);
-      alert('Error switching environment: ' + error.message);
+      // Handle error silently
     }
   }
 
   async compareEnvironments() {
-    console.log('Starting environment comparison...');
-    console.log('Current tab URL:', this.currentTab.url);
-
     // Get current environment using our helper method
     const currentEnv = this.getCurrentEnvironment();
 
     if (!currentEnv || !currentEnv.url) {
-      console.error('Invalid current environment:', currentEnv);
-      alert('Could not determine current environment');
       return;
     }
 
     // Get selected environment from dropdown
     const envSelect = document.getElementById('environmentSelect');
     if (!envSelect) {
-      console.error('Environment select element not found');
       return;
     }
 
     const selectedEnvName = envSelect.value;
     if (!selectedEnvName) {
-      console.error('No environment selected');
-      alert('Please select an environment to compare with');
       return;
     }
 
     // Get current group
     const currentGroup = this.normalizeGroup(currentEnv.group);
-    console.log('Current environment group:', {
-      name: currentEnv.name,
-      group: currentEnv.group,
-      normalizedGroup: currentGroup,
-      url: currentEnv.url
-    });
 
     // Find the selected environment within the same group
     const selectedEnv = this.environments.find(env => {
@@ -590,23 +565,10 @@ class Popup {
       const envGroup = this.normalizeGroup(env.group);
       const isSameGroup = currentGroup === envGroup;
       
-      console.log('Target environment check:', {
-        name: env.name,
-        isTarget,
-        group: env.group,
-        normalizedGroup: envGroup,
-        isSameGroup,
-        url: env.url
-      });
-      
       return isTarget && isSameGroup;
     });
 
     if (!selectedEnv || !selectedEnv.url) {
-      console.error('Selected environment not found in the same group:', {
-        targetName: selectedEnvName,
-        currentGroup: currentGroup
-      });
       return;
     }
 
@@ -633,15 +595,8 @@ class Popup {
       }
     };
 
-    console.log('Preparing to store comparison data:', comparisonData);
-
     // Validate URLs before storing
     if (!comparisonData.env1.url || !comparisonData.env2.url) {
-      console.error('Invalid URLs in comparison data:', {
-        env1Url: comparisonData.env1.url,
-        env2Url: comparisonData.env2.url
-      });
-      alert('Error: Invalid environment URLs');
       return;
     }
 
@@ -651,20 +606,18 @@ class Popup {
 
       // Verify the data was stored
       const storedData = await chrome.storage.local.get('comparisonData');
-      console.log('Verified stored comparison data:', storedData);
 
       if (!storedData.comparisonData || 
           !storedData.comparisonData.env1.url || 
           !storedData.comparisonData.env2.url) {
-        throw new Error('Failed to verify stored comparison data');
+        return;
       }
 
       // Open comparison page
       const comparisonUrl = chrome.runtime.getURL('comparison/comparison.html');
       await chrome.tabs.create({ url: comparisonUrl });
     } catch (error) {
-      console.error('Error in comparison process:', error);
-      alert('Error preparing comparison data: ' + error.message);
+      // Handle error silently
     }
   }
 }
