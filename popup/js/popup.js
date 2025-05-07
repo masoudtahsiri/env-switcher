@@ -527,16 +527,25 @@ class Popup {
       return;
     }
 
+    // Extract the path from the current URL
+    const currentUrl = this.currentTab.url;
+    const currentUrlObj = new URL(currentUrl);
+    const path = currentUrlObj.pathname + currentUrlObj.search + currentUrlObj.hash;
+
+    // Construct the comparison URLs by combining the environment base URLs with the path
+    const env1Url = currentUrl; // Keep the current URL as is
+    const env2Url = new URL(path, selectedEnv.url).href; // Combine selected env base URL with path
+
     // Store environments for comparison
     const comparisonData = {
       env1: {
         name: currentEnv.name,
-        url: currentEnv.url,
+        url: env1Url,
         type: currentEnv.type || getEnvironmentType(currentEnv)
       },
       env2: {
         name: selectedEnv.name,
-        url: selectedEnv.url,
+        url: env2Url,
         type: selectedEnv.type || getEnvironmentType(selectedEnv)
       }
     };
