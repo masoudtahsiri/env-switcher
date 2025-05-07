@@ -18,6 +18,7 @@ function getEnvironmentType(env) {
 
 class FloatingWidget {
   constructor() {
+    console.log('🏗️ Creating new FloatingWidget instance');
     this.widget = null;
     this.button = null;
     this.menu = null;
@@ -25,19 +26,24 @@ class FloatingWidget {
     this.environments = [];
     this.openInNewTab = false;
     this.isDragging = false;
-    this.widgetPosition = null; // Initialize position
-    this.widgetVisible = true; // Initialize visibility
-    this.showWidgetEvenWithoutMatch = true; // Let's default to showing it
+    this.widgetPosition = null;
+    this.widgetVisible = true;
+    this.showWidgetEvenWithoutMatch = true;
+    this.initialized = false;
+    this.observer = null;
 
     // Bind methods that will be used as event listeners
     this.dragBound = this.drag.bind(this);
     this.stopDraggingBound = this.stopDragging.bind(this);
 
+    // Initialize immediately
     this.init();
   }
 
   async init() {
     try {
+      console.log('🚀 Initializing widget...');
+      
       // Get current URL and environments
       const currentUrl = window.location.href;
       const storage = await chrome.storage.sync.get(['environments', 'widgetPosition', 'openInNewTab', 'widgetVisible']);
@@ -46,15 +52,22 @@ class FloatingWidget {
       this.openInNewTab = storage.openInNewTab || false;
       this.widgetVisible = storage.widgetVisible !== false;
       
+      console.log('📊 Widget state:', {
+        environments: this.environments.length,
+        widgetPosition: this.widgetPosition,
+        openInNewTab: this.openInNewTab,
+        widgetVisible: this.widgetVisible
+      });
+      
       // Check if current URL matches any environment
       const currentEnv = this.matchCurrentEnvironment(currentUrl, this.environments);
       
       if (!currentEnv) {
-        console.log('No matching environment found for current URL:', currentUrl);
-        return; // Don't create widget if no matching environment
+        console.log('❌ No matching environment found for current URL:', currentUrl);
+        return;
       }
       
-      console.log('Current environment:', currentEnv.name);
+      console.log('✅ Current environment:', currentEnv.name);
       this.currentEnv = currentEnv;
       
       // Create widget elements
@@ -74,12 +87,39 @@ class FloatingWidget {
       
       // Add event listeners
       this.setupEventListeners();
-      
-      // Set initial visibility
+  
+      // Set initial visibility based on storage state
       this.setVisibility(this.widgetVisible);
+  
+      this.initialized = true;
+      console.log('✅ Widget initialization complete');
       
     } catch (error) {
-      console.error('Error initializing widget:', error);
+      console.error('❌ Error initializing widget:', error);
+    }
+  }
+
+  setupMutationObserver() {
+    // Create a mutation observer to watch for changes to the widget
+    this.observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+          // Check if the widget's visibility has changed
+          const isVisible = this.widget.style.display !== 'none';
+          if (isVisible !== this.widgetVisible) {
+            console.log('Widget visibility changed via DOM:', isVisible);
+            this.setVisibility(isVisible);
+          }
+        }
+      });
+    });
+
+    // Start observing the widget for changes
+    if (this.widget) {
+      this.observer.observe(this.widget, {
+        attributes: true,
+        attributeFilter: ['style']
+      });
     }
   }
 
@@ -179,7 +219,6 @@ class FloatingWidget {
   // RESTORED: createWidget method
   createWidget() {
     if (this.widget) {
-        console.warn('Widget already created.');
         return;
     }
     
@@ -588,66 +627,160 @@ class FloatingWidget {
   // Modified setupEventListeners to include necessary listeners
   setupEventListeners() {
     if (!this.widget) {
-        console.error('Cannot setup listeners, widget not created.');
-        return;
+      console.error('❌ Cannot setup listeners, widget not created.');
+      return;
     }
     
+    console.log('🎯 Setting up event listeners:', {
+      timestamp: new Date().toISOString(),
+      widgetExists: !!this.widget,
+      widgetVisible: this.widgetVisible
+    });
+    
+    // Listen for storage changes
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+      if (areaName === 'sync' && changes.widgetVisible) {
+        console.log('💾 Storage Changed:', {
+          newVisibility: changes.widgetVisible.newValue ? 'VISIBLE' : 'HIDDEN',
+          oldVisibility: changes.widgetVisible.oldValue ? 'VISIBLE' : 'HIDDEN',
+          timestamp: new Date().toISOString()
+        });
+        this.setVisibility(changes.widgetVisible.newValue);
+      }
+    });
+
+    // Listen for messages
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      console.log('📨 Widget Received Message:', {
+        action: message.action,
+        isVisible: message.isVisible,
+        sender: sender,
+        timestamp: new Date().toISOString()
+      });
+      
+      if (message.action === 'updateWidgetVisibility') {
+        console.log('👁️ Updating Widget Visibility from Message:', {
+          newState: message.isVisible ? 'VISIBLE' : 'HIDDEN',
+          currentState: this.widgetVisible,
+          timestamp: new Date().toISOString()
+        });
+        
+        // Update storage first
+        chrome.storage.sync.set({ widgetVisible: message.isVisible }, () => {
+          if (chrome.runtime.lastError) {
+            console.error('❌ Error updating storage:', chrome.runtime.lastError);
+          } else {
+            console.log('💾 Storage updated to match visibility state');
+            // Then update widget visibility
+            this.setVisibility(message.isVisible);
+            sendResponse({ 
+              success: true,
+              timestamp: new Date().toISOString(),
+              widgetVisible: this.widgetVisible
+            });
+          }
+        });
+        return true; // Keep the message channel open for the async response
+      }
+      return false;
+    });
+
     // Button click to toggle menu
     this.button.addEventListener('click', (e) => {
-        e.stopPropagation(); // Prevent click from closing menu immediately
-        this.toggleMenu();
+      e.stopPropagation();
+      this.toggleMenu();
     });
     
     // Close button listener
     const closeButton = this.widget.querySelector('.env-switcher-close');
     if (closeButton) {
-        closeButton.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            try {
-                await chrome.storage.sync.set({ widgetVisible: false });
-                this.setVisibility(false);
-            } catch (error) {
-                console.error('Error setting widgetVisible to false:', error);
-                this.setVisibility(false); 
-            }
+      closeButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        console.log('🔴 Close Button Clicked:', {
+          timestamp: new Date().toISOString(),
+          currentVisibility: this.widgetVisible
         });
+        this.setVisibility(false);
+      });
     }
     
     // Close menu if clicking outside the widget
     document.addEventListener('click', (e) => {
-        if (this.widget && !this.widget.contains(e.target) && this.menu.classList.contains('visible')) {
-            this.closeMenu();
-        }
+      if (this.widget && !this.widget.contains(e.target) && this.menu.classList.contains('visible')) {
+        this.closeMenu();
+      }
     });
 
     // Drag listeners on the widget
     this.widget.addEventListener('mousedown', (e) => this.startDragging(e));
-    // Note: move and up listeners are added dynamically in startDragging
 
     // Update menu position on window resize
     window.addEventListener('resize', () => this.updateMenuPosition());
 
-    // Listen for messages from popup
-    try {
-        chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-          if (!this.widget) return; 
-          
-          if (message.action === 'toggleWidget') {
-            this.setVisibility(message.visible);
+    // Add visibility change listener
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        // When page becomes visible, check storage state
+        chrome.storage.sync.get(['widgetVisible'], (result) => {
+          const shouldBeVisible = result.widgetVisible !== false;
+          if (shouldBeVisible !== this.widgetVisible) {
+            this.setVisibility(shouldBeVisible);
           }
         });
-    } catch (error) {
-        console.error('Error adding runtime message listener:', error);
-    }
+      }
+    });
   }
-  
+
   setVisibility(visible) {
-    console.log('[DEBUG] setVisibility called with:', visible);
-    if (this.widget) { 
-        this.widget.style.display = visible ? 'block' : 'none';
-        this.widgetVisible = visible; 
+    console.log('👁️ Setting Widget Visibility:', {
+      newState: visible ? 'VISIBLE' : 'HIDDEN',
+      currentState: this.widgetVisible,
+      timestamp: new Date().toISOString(),
+      widgetExists: !!this.widget,
+      widgetDisplay: this.widget?.style.display
+    });
+    
+    this.widgetVisible = visible;
+    
+    if (visible) {
+      // If turning on and widget doesn't exist, create it
+      if (!this.widget) {
+        console.log('🔄 Widget does not exist, creating new instance');
+        this.init();
+        return;
+      }
+      
+      // Show the widget
+      this.widget.style.display = 'block';
+      console.log('✅ Widget displayed');
     } else {
-        console.warn('setVisibility called but widget does not exist');
+      // If turning off and widget exists, hide it
+      if (this.widget) {
+        this.widget.style.display = 'none';
+        console.log('✅ Widget hidden');
+        
+        // Update storage to match visibility state
+        try {
+          if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id) {
+            chrome.storage.sync.set({ widgetVisible: false }, () => {
+              if (chrome.runtime.lastError) {
+                console.log('💾 Storage update skipped (extension context invalidated)');
+              } else {
+                console.log('💾 Storage updated to match visibility state');
+              }
+            });
+          } else {
+            console.log('💾 Storage update skipped (extension context invalidated)');
+          }
+        } catch (error) {
+          console.log('💾 Storage update skipped (extension context invalidated)');
+        }
+      }
+    }
+    
+    // If hiding, also close the menu
+    if (!visible) {
+      this.closeMenu();
     }
   }
   
@@ -665,9 +798,100 @@ class FloatingWidget {
   }
 }
 
-// Initialize widget
-try {
-    new FloatingWidget(); 
-} catch (error) {
-    console.error('Critical error initializing FloatingWidget:', error);
+// Initialize widget when the DOM is ready
+let widgetInstance = null;
+
+async function initializeWidget() {
+  console.log('🔄 Initializing widget...');
+  
+  try {
+    // Check storage state directly
+    const storage = await chrome.storage.sync.get(['widgetVisible', 'environments']);
+    const shouldBeVisible = storage.widgetVisible !== false;
+    console.log('📋 Storage state:', { shouldBeVisible, environments: storage.environments?.length });
+    
+    // Destroy existing instance if it exists
+    if (widgetInstance) {
+      console.log('🗑️ Destroying existing widget instance');
+      if (widgetInstance.widget && widgetInstance.widget.parentNode) {
+        widgetInstance.widget.parentNode.removeChild(widgetInstance.widget);
+      }
+      widgetInstance = null;
+    }
+    
+    // Create new instance if widget should be visible
+    if (shouldBeVisible) {
+      console.log('🔄 Creating new widget instance');
+      widgetInstance = new FloatingWidget();
+      
+      // Ensure widget is visible
+      if (widgetInstance && widgetInstance.widget) {
+        console.log('👁️ Setting initial visibility to true');
+        widgetInstance.setVisibility(true);
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error initializing widget:', error);
+  }
+}
+
+// Listen for messages at the global level
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log('📨 Global message listener received:', message);
+  
+  if (message.action === 'updateWidgetVisibility') {
+    console.log('👁️ Updating widget visibility:', message.isVisible);
+    
+    if (message.isVisible) {
+      // If turning on, create new instance if needed
+      if (!widgetInstance) {
+        console.log('🔄 Creating new widget instance');
+        widgetInstance = new FloatingWidget();
+      } else {
+        // If instance exists, just update visibility
+        widgetInstance.setVisibility(true);
+      }
+    } else {
+      // If turning off, update visibility
+      if (widgetInstance) {
+        widgetInstance.setVisibility(false);
+      }
+    }
+    
+    sendResponse({ success: true });
+    return true;
+  }
+  return false;
+});
+
+// Listen for storage changes
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName === 'sync' && changes.widgetVisible) {
+    console.log('💾 Storage changed:', changes.widgetVisible.newValue);
+    
+    if (changes.widgetVisible.newValue) {
+      // If turning on, create new instance if needed
+      if (!widgetInstance) {
+        console.log('🔄 Creating new widget instance');
+        widgetInstance = new FloatingWidget();
+      } else {
+        // If instance exists, just update visibility
+        widgetInstance.setVisibility(true);
+      }
+    } else {
+      // If turning off, update visibility
+      if (widgetInstance) {
+        widgetInstance.setVisibility(false);
+      }
+    }
+  }
+});
+
+// Initialize immediately if DOM is ready, otherwise wait for DOMContentLoaded
+if (document.readyState === 'loading') {
+  console.log('⏳ DOM still loading, waiting for DOMContentLoaded...');
+  document.addEventListener('DOMContentLoaded', initializeWidget);
+} else {
+  console.log('✅ DOM already loaded, initializing immediately');
+  initializeWidget();
 } 
