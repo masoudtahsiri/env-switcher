@@ -160,9 +160,6 @@ class Popup {
           action: 'updateWidgetVisibility',
           isVisible: visible
         });
-        
-        // Reload the current tab to ensure changes take effect
-        await chrome.tabs.reload(this.currentTab.id);
       }
     } catch (error) {
       // Handle error silently

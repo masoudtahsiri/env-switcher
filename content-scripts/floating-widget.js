@@ -605,26 +605,10 @@ class FloatingWidget {
       try {
         if (message.action === 'updateWidgetVisibility') {
           try {
-            chrome.storage.sync.set({ widgetVisible: message.isVisible }, () => {
-              try {
-                if (chrome.runtime.lastError) {
-                  if (chrome.runtime.lastError.message.includes('Extension context invalidated')) {
-                    this.handleContextInvalidation();
-                    return;
-                  }
-                } else {
-                  this.setVisibility(message.isVisible);
-                  sendResponse({ 
-                    success: true,
-                    widgetVisible: this.widgetVisible
-                  });
-                }
-              } catch (error) {
-                if (error.message.includes('Extension context invalidated')) {
-                  this.handleContextInvalidation();
-                  return;
-                }
-              }
+            this.setVisibility(message.isVisible);
+            sendResponse({ 
+              success: true,
+              widgetVisible: this.widgetVisible
             });
           } catch (error) {
             if (error.message.includes('Extension context invalidated')) {
