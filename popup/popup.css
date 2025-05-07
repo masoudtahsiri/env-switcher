@@ -91,7 +91,7 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px;
+  padding: 8px;
   background-color: var(--card-background);
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -104,7 +104,7 @@ h1 {
 .env-name {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0;
   margin-bottom: 4px;
 }
 
@@ -115,6 +115,7 @@ h1 {
 
 .env-text {
   font-weight: 500;
+  text-align: left;
 }
 
 .env-badge {
@@ -134,6 +135,7 @@ h1 {
   white-space: normal;
   max-width: 100%;
   padding-top: 5px;
+  text-align: left;
 }
 
 .env-actions {
@@ -425,4 +427,12 @@ select:focus {
 
 .env-select option:disabled {
   color: #bdbdbd;
+}
+
+.env-unknown {
+  background: #fee2e2;
+  color: #b91c1c;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-weight: 600;
 } 

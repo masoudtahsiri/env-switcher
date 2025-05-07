@@ -280,6 +280,7 @@ class Popup {
     if (env) {
       // Update text content
       envNameElement.textContent = env.name;
+      envNameElement.classList.remove('env-unknown');
       envUrlElement.textContent = env.url;
       
       // Update group label
@@ -296,6 +297,7 @@ class Popup {
     } else {
       // No environment found
       envNameElement.textContent = 'Unknown Environment';
+      envNameElement.classList.add('env-unknown');
       envUrlElement.textContent = this.currentTab ? this.currentTab.url : 'Unknown URL';
       envDotElement.className = 'env-dot';
       if (envGroupElement) {
