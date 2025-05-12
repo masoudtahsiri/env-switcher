@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Environment Switcher",
-  "version": "1.0.1",
+  "name": "EnvSwitch & Compare",
+  "version": "1.0.2",
   "description": "Quickly switch between different environments of your web applications",
   "permissions": [
     "storage",
@@ -46,7 +46,8 @@
         "content-scripts/*",
         "popup/manage.html",
         "popup/js/*",
-        "popup/css/*"
+        "popup/css/*",
+        "icons/*"
       ],
       "matches": ["<all_urls>"]
     }

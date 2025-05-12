@@ -1,4 +1,4 @@
-# Environment Switcher Chrome Extension
+# EnvSwitch & Compare Chrome Extension
 
 A Chrome extension that helps you quickly switch between different environments (development, staging, production) of your web applications.
 
