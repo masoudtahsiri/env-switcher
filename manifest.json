@@ -3,6 +3,7 @@
   "name": "EnvSwitch & Compare",
   "version": "1.0.2",
   "description": "Quickly switch between different environments of your web applications",
+  "homepage_url": "https://refact.co",
   "permissions": [
     "storage",
     "tabs",
@@ -55,5 +56,5 @@
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'; frame-src 'self' https:;"
   },
-  "author": "Refact, LLC"
+  "author": "Refact"
 } 
