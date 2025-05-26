@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "EnvSwitch & Compare",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Quickly switch between different environments of your web applications",
   "homepage_url": "https://refact.co",
   "permissions": [
